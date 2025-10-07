@@ -1,0 +1,232 @@
+// ================================================
+// TIME INTELLIGENCE PATTERNS IN DAX
+// Author: Gabriel Demetrios Lafis
+// Description: Advanced DAX patterns for time-based analytics
+// ================================================
+
+// ------------------------------------------------
+// 1. YEAR-TO-DATE (YTD) CALCULATIONS
+// ------------------------------------------------
+
+// Total Sales YTD
+Sales YTD = 
+TOTALYTD(
+    SUM('Sales'[Sales Amount]),
+    'Calendar'[Date]
+)
+
+// Profit YTD
+Profit YTD = 
+TOTALYTD(
+    SUM('Sales'[Profit]),
+    'Calendar'[Date]
+)
+
+// ------------------------------------------------
+// 2. PREVIOUS PERIOD COMPARISONS
+// ------------------------------------------------
+
+// Sales Previous Year
+Sales PY = 
+CALCULATE(
+    SUM('Sales'[Sales Amount]),
+    SAMEPERIODLASTYEAR('Calendar'[Date])
+)
+
+// Sales Previous Month
+Sales PM = 
+CALCULATE(
+    SUM('Sales'[Sales Amount]),
+    DATEADD('Calendar'[Date], -1, MONTH)
+)
+
+// Year-over-Year Growth
+YoY Growth % = 
+VAR CurrentYearSales = SUM('Sales'[Sales Amount])
+VAR PreviousYearSales = [Sales PY]
+RETURN
+    DIVIDE(
+        CurrentYearSales - PreviousYearSales,
+        PreviousYearSales,
+        0
+    )
+
+// Month-over-Month Growth
+MoM Growth % = 
+VAR CurrentMonthSales = SUM('Sales'[Sales Amount])
+VAR PreviousMonthSales = [Sales PM]
+RETURN
+    DIVIDE(
+        CurrentMonthSales - PreviousMonthSales,
+        PreviousMonthSales,
+        0
+    )
+
+// ------------------------------------------------
+// 3. MOVING AVERAGES
+// ------------------------------------------------
+
+// 3-Month Moving Average
+Sales 3M MA = 
+AVERAGEX(
+    DATESINPERIOD(
+        'Calendar'[Date],
+        LASTDATE('Calendar'[Date]),
+        -3,
+        MONTH
+    ),
+    [Total Sales]
+)
+
+// 12-Month Moving Average
+Sales 12M MA = 
+AVERAGEX(
+    DATESINPERIOD(
+        'Calendar'[Date],
+        LASTDATE('Calendar'[Date]),
+        -12,
+        MONTH
+    ),
+    [Total Sales]
+)
+
+// ------------------------------------------------
+// 4. CUMULATIVE TOTALS
+// ------------------------------------------------
+
+// Running Total
+Sales Running Total = 
+CALCULATE(
+    SUM('Sales'[Sales Amount]),
+    FILTER(
+        ALL('Calendar'[Date]),
+        'Calendar'[Date] <= MAX('Calendar'[Date])
+    )
+)
+
+// Running Total within Year
+Sales Running Total YTD = 
+VAR CurrentYear = YEAR(MAX('Calendar'[Date]))
+RETURN
+    CALCULATE(
+        SUM('Sales'[Sales Amount]),
+        FILTER(
+            ALL('Calendar'[Date]),
+            YEAR('Calendar'[Date]) = CurrentYear &&
+            'Calendar'[Date] <= MAX('Calendar'[Date])
+        )
+    )
+
+// ------------------------------------------------
+// 5. PERIOD-OVER-PERIOD ANALYSIS
+// ------------------------------------------------
+
+// Quarter-to-Date
+Sales QTD = 
+TOTALQTD(
+    SUM('Sales'[Sales Amount]),
+    'Calendar'[Date]
+)
+
+// Month-to-Date
+Sales MTD = 
+TOTALMTD(
+    SUM('Sales'[Sales Amount]),
+    'Calendar'[Date]
+)
+
+// Same Period Last Quarter
+Sales SPLQ = 
+CALCULATE(
+    SUM('Sales'[Sales Amount]),
+    DATEADD('Calendar'[Date], -1, QUARTER)
+)
+
+// ------------------------------------------------
+// 6. DYNAMIC TIME PERIODS
+// ------------------------------------------------
+
+// Last N Days (Dynamic)
+Sales Last 30 Days = 
+CALCULATE(
+    SUM('Sales'[Sales Amount]),
+    DATESINPERIOD(
+        'Calendar'[Date],
+        MAX('Calendar'[Date]),
+        -30,
+        DAY
+    )
+)
+
+// Last Complete Month
+Sales Last Complete Month = 
+CALCULATE(
+    SUM('Sales'[Sales Amount]),
+    DATEADD(
+        DATESMTD('Calendar'[Date]),
+        -1,
+        MONTH
+    )
+)
+
+// ------------------------------------------------
+// 7. FISCAL YEAR CALCULATIONS
+// ------------------------------------------------
+
+// Fiscal Year (assuming fiscal year starts in July)
+Fiscal Year = 
+VAR FiscalYearStart = 7
+VAR CurrentYear = YEAR('Calendar'[Date])
+VAR CurrentMonth = MONTH('Calendar'[Date])
+RETURN
+    IF(
+        CurrentMonth >= FiscalYearStart,
+        CurrentYear,
+        CurrentYear - 1
+    )
+
+// Fiscal YTD
+Sales Fiscal YTD = 
+CALCULATE(
+    SUM('Sales'[Sales Amount]),
+    DATESYTD('Calendar'[Date], "06-30")  // Fiscal year ends June 30
+)
+
+// ------------------------------------------------
+// 8. WORKING DAYS CALCULATIONS
+// ------------------------------------------------
+
+// Sales per Working Day
+Sales per Working Day = 
+VAR TotalSales = SUM('Sales'[Sales Amount])
+VAR WorkingDays = 
+    COUNTROWS(
+        FILTER(
+            'Calendar',
+            'Calendar'[IsWorkingDay] = TRUE()
+        )
+    )
+RETURN
+    DIVIDE(TotalSales, WorkingDays, 0)
+
+// ------------------------------------------------
+// 9. PARALLEL PERIOD COMPARISON
+// ------------------------------------------------
+
+// Sales Same Period Last Year
+Sales SPLY = 
+CALCULATE(
+    SUM('Sales'[Sales Amount]),
+    PARALLELPERIOD('Calendar'[Date], -12, MONTH)
+)
+
+// Growth vs Same Period Last Year
+Growth vs SPLY = 
+VAR CurrentPeriod = SUM('Sales'[Sales Amount])
+VAR SamePeriodLastYear = [Sales SPLY]
+RETURN
+    DIVIDE(
+        CurrentPeriod - SamePeriodLastYear,
+        SamePeriodLastYear,
+        0
+    )
