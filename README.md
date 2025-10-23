@@ -551,6 +551,7 @@ Badge de Status: [![DAX Validation](https://github.com/galafis/powerbi-dax-advan
 - [SQLBI - DAX Patterns](https://www.daxpatterns.com/) - Padrões avançados
 - [DAX Studio](https://daxstudio.org/) - Ferramenta gratuita para desenvolvimento DAX
 - [Power BI Documentation](https://docs.microsoft.com/power-bi/) - Documentação oficial Microsoft
+- [TROUBLESHOOTING.md](TROUBLESHOOTING.md) - 🆘 Guia de Solução de Problemas
 
 ### 🤝 Como Contribuir
 
