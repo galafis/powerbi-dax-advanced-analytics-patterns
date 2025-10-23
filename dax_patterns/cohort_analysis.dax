@@ -1,0 +1,331 @@
+// ================================================
+// COHORT ANALYSIS PATTERNS
+// Author: Gabriel Demetrios Lafis
+// Description: DAX patterns for customer cohort and retention analysis
+// ================================================
+
+// ------------------------------------------------
+// 1. COHORT IDENTIFICATION
+// ------------------------------------------------
+
+// First Purchase Date (Cohort Date)
+First Purchase Date = 
+CALCULATE(
+    MIN('Sales'[Order Date]),
+    ALL('Sales'),
+    VALUES('Sales'[Customer ID])
+)
+
+// Cohort Month
+Cohort Month = 
+FORMAT([First Purchase Date], "YYYY-MM")
+
+// Cohort Quarter
+Cohort Quarter = 
+"Q" & QUARTER([First Purchase Date]) & " " & YEAR([First Purchase Date])
+
+// Cohort Year
+Cohort Year = 
+YEAR([First Purchase Date])
+
+// Days Since First Purchase
+Days Since First Purchase = 
+DATEDIFF(
+    [First Purchase Date],
+    MAX('Sales'[Order Date]),
+    DAY
+)
+
+// ------------------------------------------------
+// 2. COHORT SIZING
+// ------------------------------------------------
+
+// Cohort Size (Unique Customers)
+Cohort Size = 
+CALCULATE(
+    DISTINCTCOUNT('Sales'[Customer ID]),
+    FILTER(
+        ALL('Sales'[Order Date]),
+        FORMAT('Sales'[Order Date], "YYYY-MM") = [Cohort Month]
+    )
+)
+
+// New Customers (First Time Buyers)
+New Customers = 
+VAR CurrentMonth = MAX('Calendar'[Month Year])
+RETURN
+    COUNTROWS(
+        FILTER(
+            VALUES('Sales'[Customer ID]),
+            [Cohort Month] = CurrentMonth
+        )
+    )
+
+// Cohort Age (Months)
+Cohort Age Months = 
+VAR CohortDate = [First Purchase Date]
+VAR CurrentDate = MAX('Sales'[Order Date])
+RETURN
+    DATEDIFF(CohortDate, CurrentDate, MONTH)
+
+// ------------------------------------------------
+// 3. RETENTION ANALYSIS
+// ------------------------------------------------
+
+// Customer Retention Rate
+Retention Rate = 
+VAR CustomersLastMonth = 
+    CALCULATE(
+        DISTINCTCOUNT('Sales'[Customer ID]),
+        DATEADD('Calendar'[Date], -1, MONTH)
+    )
+VAR CustomersThisMonth = 
+    DISTINCTCOUNT('Sales'[Customer ID])
+VAR RetainedCustomers = 
+    CALCULATE(
+        DISTINCTCOUNT('Sales'[Customer ID]),
+        FILTER(
+            'Sales',
+            'Sales'[Customer ID] IN 
+                CALCULATETABLE(
+                    VALUES('Sales'[Customer ID]),
+                    DATEADD('Calendar'[Date], -1, MONTH)
+                )
+        )
+    )
+RETURN
+    DIVIDE(RetainedCustomers, CustomersLastMonth, 0)
+
+// Cohort Retention % (by Month)
+Cohort Retention % = 
+VAR CohortCustomers = [Cohort Size]
+VAR ActiveCustomers = 
+    CALCULATE(
+        DISTINCTCOUNT('Sales'[Customer ID]),
+        USERELATIONSHIP('Sales'[Order Date], 'Calendar'[Date])
+    )
+RETURN
+    DIVIDE(ActiveCustomers, CohortCustomers, 0)
+
+// N-Month Retention
+N-Month Retention = 
+VAR MonthsAfter = SELECTEDVALUE('Parameters'[Months After Cohort], 1)
+VAR CohortCustomers = [Cohort Size]
+VAR RetainedCustomers = 
+    CALCULATE(
+        DISTINCTCOUNT('Sales'[Customer ID]),
+        FILTER(
+            'Sales',
+            [Cohort Age Months] = MonthsAfter
+        )
+    )
+RETURN
+    DIVIDE(RetainedCustomers, CohortCustomers, 0)
+
+// Churn Rate
+Churn Rate = 
+1 - [Retention Rate]
+
+// ------------------------------------------------
+// 4. COHORT REVENUE ANALYSIS
+// ------------------------------------------------
+
+// Cohort Lifetime Value (LTV)
+Cohort LTV = 
+VAR CohortCustomers = 
+    FILTER(
+        ALL('Sales'[Customer ID]),
+        [Cohort Month] = MAX('Calendar'[Month Year])
+    )
+RETURN
+    CALCULATE(
+        DIVIDE(
+            SUM('Sales'[Sales Amount]),
+            DISTINCTCOUNT('Sales'[Customer ID])
+        ),
+        CohortCustomers
+    )
+
+// Cohort Revenue by Month
+Cohort Monthly Revenue = 
+VAR CohortDate = [First Purchase Date]
+VAR MonthsFromCohort = 
+    DATEDIFF(
+        CohortDate,
+        MAX('Calendar'[Date]),
+        MONTH
+    )
+RETURN
+    CALCULATE(
+        SUM('Sales'[Sales Amount]),
+        FILTER(
+            'Sales',
+            DATEDIFF(
+                [First Purchase Date],
+                'Sales'[Order Date],
+                MONTH
+            ) = MonthsFromCohort
+        )
+    )
+
+// Average Revenue per Cohort Customer
+Avg Revenue per Cohort Customer = 
+DIVIDE(
+    [Cohort Monthly Revenue],
+    [Cohort Size],
+    0
+)
+
+// Cumulative Cohort Revenue
+Cumulative Cohort Revenue = 
+VAR CohortCustomers = 
+    FILTER(
+        ALL('Sales'[Customer ID]),
+        [Cohort Month] = MAX('Calendar'[Month Year])
+    )
+RETURN
+    CALCULATE(
+        SUM('Sales'[Sales Amount]),
+        CohortCustomers,
+        'Sales'[Order Date] <= MAX('Calendar'[Date])
+    )
+
+// ------------------------------------------------
+// 5. COHORT BEHAVIOR METRICS
+// ------------------------------------------------
+
+// Average Orders per Customer (by Cohort)
+Avg Orders per Customer = 
+VAR CohortCustomers = [Cohort Size]
+VAR TotalOrders = 
+    CALCULATE(
+        DISTINCTCOUNT('Sales'[Order ID])
+    )
+RETURN
+    DIVIDE(TotalOrders, CohortCustomers, 0)
+
+// Repeat Purchase Rate
+Repeat Purchase Rate = 
+VAR TotalCustomers = DISTINCTCOUNT('Sales'[Customer ID])
+VAR RepeatCustomers = 
+    COUNTROWS(
+        FILTER(
+            VALUES('Sales'[Customer ID]),
+            CALCULATE(DISTINCTCOUNT('Sales'[Order ID])) > 1
+        )
+    )
+RETURN
+    DIVIDE(RepeatCustomers, TotalCustomers, 0)
+
+// Days Between Purchases
+Avg Days Between Purchases = 
+VAR CustomerOrders = 
+    ADDCOLUMNS(
+        VALUES('Sales'[Customer ID]),
+        "OrderCount", CALCULATE(DISTINCTCOUNT('Sales'[Order ID])),
+        "FirstOrder", CALCULATE(MIN('Sales'[Order Date])),
+        "LastOrder", CALCULATE(MAX('Sales'[Order Date]))
+    )
+VAR CustomersWithMultipleOrders = 
+    FILTER(
+        CustomerOrders,
+        [OrderCount] > 1
+    )
+RETURN
+    AVERAGEX(
+        CustomersWithMultipleOrders,
+        DATEDIFF([FirstOrder], [LastOrder], DAY) / ([OrderCount] - 1)
+    )
+
+// Customer Lifetime (Active Days)
+Customer Lifetime Days = 
+AVERAGEX(
+    VALUES('Sales'[Customer ID]),
+    DATEDIFF(
+        CALCULATE(MIN('Sales'[Order Date])),
+        CALCULATE(MAX('Sales'[Order Date])),
+        DAY
+    )
+)
+
+// ------------------------------------------------
+// 6. COHORT COMPARISON
+// ------------------------------------------------
+
+// Best Performing Cohort
+Best Cohort = 
+VAR BestCohortValue = 
+    MAXX(
+        VALUES('Calendar'[Month Year]),
+        [Cohort LTV]
+    )
+VAR BestCohort = 
+    CALCULATE(
+        MAX('Calendar'[Month Year]),
+        FILTER(
+            VALUES('Calendar'[Month Year]),
+            [Cohort LTV] = BestCohortValue
+        )
+    )
+RETURN
+    BestCohort
+
+// Cohort Performance vs Average
+Cohort vs Average = 
+VAR CurrentCohortLTV = [Cohort LTV]
+VAR AverageLTV = 
+    CALCULATE(
+        AVERAGE('Sales'[Sales Amount]),
+        ALL('Calendar')
+    )
+RETURN
+    DIVIDE(CurrentCohortLTV - AverageLTV, AverageLTV, 0)
+
+// Cohort Maturity Status
+Cohort Maturity = 
+VAR CohortAge = [Cohort Age Months]
+RETURN
+    SWITCH(
+        TRUE(),
+        CohortAge < 3, "🆕 New (0-3 months)",
+        CohortAge < 6, "🌱 Growing (3-6 months)",
+        CohortAge < 12, "📈 Maturing (6-12 months)",
+        CohortAge < 24, "💪 Established (1-2 years)",
+        "⭐ Veteran (2+ years)"
+    )
+
+// ------------------------------------------------
+// 7. ADVANCED COHORT METRICS
+// ------------------------------------------------
+
+// Monthly Active Users (MAU) by Cohort
+MAU by Cohort = 
+VAR CurrentMonth = MAX('Calendar'[Month Year])
+VAR CohortDate = [First Purchase Date]
+RETURN
+    CALCULATE(
+        DISTINCTCOUNT('Sales'[Customer ID]),
+        FILTER(
+            'Sales',
+            FORMAT('Sales'[Order Date], "YYYY-MM") = CurrentMonth &&
+            FORMAT([First Purchase Date], "YYYY-MM") = FORMAT(CohortDate, "YYYY-MM")
+        )
+    )
+
+// Cohort Stickiness (DAU/MAU)
+Cohort Stickiness = 
+VAR DAU = 
+    CALCULATE(
+        DISTINCTCOUNT('Sales'[Customer ID]),
+        'Calendar'[Date] = MAX('Calendar'[Date])
+    )
+VAR MAU = [MAU by Cohort]
+RETURN
+    DIVIDE(DAU, MAU, 0)
+
+// Cohort Payback Period (Months)
+Payback Period Months = 
+VAR CAC = SELECTEDVALUE('Parameters'[Customer Acquisition Cost], 100)
+VAR AvgMonthlyRevenue = [Avg Revenue per Cohort Customer]
+RETURN
+    DIVIDE(CAC, AvgMonthlyRevenue, 0)

@@ -1,0 +1,362 @@
+// ================================================
+// RANKING & TOP N ANALYSIS
+// Author: Gabriel Demetrios Lafis
+// Description: DAX patterns for ranking, top performers, and bottom performers analysis
+// ================================================
+
+// ------------------------------------------------
+// 1. BASIC RANKING
+// ------------------------------------------------
+
+// Product Rank by Sales (Dense Ranking)
+Product Rank = 
+RANKX(
+    ALL('Products'[Product Name]),
+    [Total Sales],
+    ,
+    DESC,
+    DENSE
+)
+
+// Customer Rank by Revenue
+Customer Rank = 
+RANKX(
+    ALL('Customers'[Customer Name]),
+    [Total Revenue],
+    ,
+    DESC,
+    DENSE
+)
+
+// Category Rank by Profit Margin
+Category Rank by Margin = 
+RANKX(
+    ALL('Products'[Category]),
+    [Profit Margin %],
+    ,
+    DESC,
+    DENSE
+)
+
+// Store Rank with Ties (Skip Ranking)
+Store Rank = 
+RANKX(
+    ALL('Stores'[Store Name]),
+    [Total Sales],
+    ,
+    DESC,
+    SKIP
+)
+
+// ------------------------------------------------
+// 2. TOP N FILTERING
+// ------------------------------------------------
+
+// Top 10 Products
+Top 10 Products = 
+IF(
+    [Product Rank] <= 10,
+    [Total Sales],
+    BLANK()
+)
+
+// Top N Products (Dynamic)
+Top N Products = 
+VAR TopNValue = SELECTEDVALUE('Parameters'[Top N], 10)
+RETURN
+    IF(
+        [Product Rank] <= TopNValue,
+        [Total Sales],
+        BLANK()
+    )
+
+// Top 20% by Pareto
+Top 20% Products = 
+VAR TotalProducts = COUNTROWS(ALL('Products'[Product Name]))
+VAR TopCount = INT(TotalProducts * 0.2)
+RETURN
+    IF(
+        [Product Rank] <= TopCount,
+        [Total Sales],
+        BLANK()
+    )
+
+// Top Performers Label
+Top Performer Label = 
+VAR Rank = [Product Rank]
+RETURN
+    SWITCH(
+        TRUE(),
+        Rank = 1, "🥇 #1",
+        Rank = 2, "🥈 #2",
+        Rank = 3, "🥉 #3",
+        Rank <= 10, "⭐ Top 10",
+        Rank <= 20, "✓ Top 20",
+        ""
+    )
+
+// ------------------------------------------------
+// 3. BOTTOM N ANALYSIS
+// ------------------------------------------------
+
+// Bottom 10 Products
+Bottom 10 Products = 
+VAR BottomRank = 
+    RANKX(
+        ALL('Products'[Product Name]),
+        [Total Sales],
+        ,
+        ASC,
+        DENSE
+    )
+RETURN
+    IF(
+        BottomRank <= 10,
+        [Total Sales],
+        BLANK()
+    )
+
+// Underperformers (Bottom 20%)
+Underperformers = 
+VAR TotalProducts = COUNTROWS(ALL('Products'[Product Name]))
+VAR BottomThreshold = INT(TotalProducts * 0.2)
+VAR BottomRank = 
+    RANKX(
+        ALL('Products'[Product Name]),
+        [Total Sales],
+        ,
+        ASC,
+        DENSE
+    )
+RETURN
+    IF(
+        BottomRank <= BottomThreshold,
+        [Total Sales],
+        BLANK()
+    )
+
+// ------------------------------------------------
+// 4. PERCENTAGE & CONTRIBUTION ANALYSIS
+// ------------------------------------------------
+
+// Percentage of Total Sales
+% of Total Sales = 
+DIVIDE(
+    [Total Sales],
+    CALCULATE(
+        [Total Sales],
+        ALL('Products')
+    ),
+    0
+)
+
+// Cumulative Percentage (for Pareto Analysis)
+Cumulative % = 
+VAR CurrentProduct = MAX('Products'[Product Name])
+VAR CurrentRank = [Product Rank]
+VAR ProductsUpToCurrent = 
+    FILTER(
+        ALL('Products'[Product Name]),
+        [Product Rank] <= CurrentRank
+    )
+RETURN
+    CALCULATE(
+        SUMX(
+            ProductsUpToCurrent,
+            [% of Total Sales]
+        )
+    )
+
+// Contribution to Category
+% of Category Sales = 
+VAR CurrentCategory = MAX('Products'[Category])
+RETURN
+    DIVIDE(
+        [Total Sales],
+        CALCULATE(
+            [Total Sales],
+            ALLEXCEPT('Products', 'Products'[Category])
+        ),
+        0
+    )
+
+// Running % of Total
+Running % of Total = 
+VAR CurrentRank = [Product Rank]
+VAR ProductsUpToCurrent = 
+    FILTER(
+        ALL('Products'[Product Name]),
+        [Product Rank] <= CurrentRank
+    )
+VAR CumulativeSales = 
+    CALCULATE(
+        [Total Sales],
+        ProductsUpToCurrent
+    )
+VAR TotalSales = 
+    CALCULATE(
+        [Total Sales],
+        ALL('Products')
+    )
+RETURN
+    DIVIDE(CumulativeSales, TotalSales, 0)
+
+// ------------------------------------------------
+// 5. DYNAMIC RANKING WITH CONTEXT
+// ------------------------------------------------
+
+// Rank within Selected Category
+Rank within Category = 
+VAR CurrentCategory = MAX('Products'[Category])
+RETURN
+    IF(
+        HASONEVALUE('Products'[Category]),
+        RANKX(
+            FILTER(
+                ALL('Products'[Product Name]),
+                RELATED('Products'[Category]) = CurrentCategory
+            ),
+            [Total Sales],
+            ,
+            DESC,
+            DENSE
+        ),
+        BLANK()
+    )
+
+// Rank within Selected Region
+Rank within Region = 
+VAR CurrentRegion = MAX('Geography'[Region])
+RETURN
+    IF(
+        HASONEVALUE('Geography'[Region]),
+        RANKX(
+            FILTER(
+                ALL('Stores'[Store Name]),
+                RELATED('Geography'[Region]) = CurrentRegion
+            ),
+            [Total Sales],
+            ,
+            DESC,
+            DENSE
+        ),
+        BLANK()
+    )
+
+// Time-Based Ranking (Current Month)
+Monthly Rank = 
+VAR CurrentMonth = MAX('Calendar'[Month Year])
+RETURN
+    CALCULATE(
+        RANKX(
+            ALL('Products'[Product Name]),
+            [Total Sales],
+            ,
+            DESC,
+            DENSE
+        ),
+        'Calendar'[Month Year] = CurrentMonth
+    )
+
+// ------------------------------------------------
+// 6. ADVANCED RANKING SCENARIOS
+// ------------------------------------------------
+
+// Rank by Growth Rate
+Rank by Growth = 
+RANKX(
+    ALL('Products'[Product Name]),
+    [YoY Growth %],
+    ,
+    DESC,
+    DENSE
+)
+
+// Composite Rank (Sales + Profit)
+Composite Rank = 
+VAR SalesRank = [Product Rank]
+VAR ProfitRank = 
+    RANKX(
+        ALL('Products'[Product Name]),
+        [Total Profit],
+        ,
+        DESC,
+        DENSE
+    )
+RETURN
+    (SalesRank + ProfitRank) / 2
+
+// Market Share Rank
+Market Share Rank = 
+RANKX(
+    ALL('Companies'[Company Name]),
+    [Market Share %],
+    ,
+    DESC,
+    DENSE
+)
+
+// Velocity Rank (Sales per Day)
+Velocity Rank = 
+VAR Velocity = 
+    DIVIDE(
+        [Total Sales],
+        COUNTROWS(VALUES('Calendar'[Date])),
+        0
+    )
+RETURN
+    RANKX(
+        ALL('Products'[Product Name]),
+        Velocity,
+        ,
+        DESC,
+        DENSE
+    )
+
+// ------------------------------------------------
+// 7. RANKING VISUALIZATIONS
+// ------------------------------------------------
+
+// Top N or Others
+Top N or Others = 
+VAR TopNValue = SELECTEDVALUE('Parameters'[Top N], 10)
+VAR CurrentRank = [Product Rank]
+RETURN
+    IF(
+        CurrentRank <= TopNValue,
+        MAX('Products'[Product Name]),
+        "Others"
+    )
+
+// Rank Movement Indicator
+Rank Movement = 
+VAR CurrentRank = [Product Rank]
+VAR PreviousRank = 
+    CALCULATE(
+        [Product Rank],
+        DATEADD('Calendar'[Date], -1, MONTH)
+    )
+VAR Movement = PreviousRank - CurrentRank
+RETURN
+    SWITCH(
+        TRUE(),
+        ISBLANK(PreviousRank), "🆕 New",
+        Movement > 0, "⬆️ +" & FORMAT(Movement, "#"),
+        Movement < 0, "⬇️ " & FORMAT(Movement, "#"),
+        "➡️ Same"
+    )
+
+// Performance Tier
+Performance Tier = 
+VAR Rank = [Product Rank]
+VAR TotalProducts = COUNTROWS(ALL('Products'[Product Name]))
+VAR Percentile = DIVIDE(Rank, TotalProducts, 0)
+RETURN
+    SWITCH(
+        TRUE(),
+        Percentile <= 0.1, "A - Top 10%",
+        Percentile <= 0.25, "B - Top 25%",
+        Percentile <= 0.5, "C - Top 50%",
+        Percentile <= 0.75, "D - Bottom 50%",
+        "E - Bottom 25%"
+    )

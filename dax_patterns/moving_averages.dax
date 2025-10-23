@@ -1,0 +1,267 @@
+// ================================================
+// MOVING AVERAGES & RUNNING TOTALS
+// Author: Gabriel Demetrios Lafis
+// Description: DAX patterns for trend analysis and cumulative calculations
+// ================================================
+
+// ------------------------------------------------
+// 1. SIMPLE MOVING AVERAGES (SMA)
+// ------------------------------------------------
+
+// 3-Month Simple Moving Average
+Sales 3M SMA = 
+AVERAGEX(
+    DATESINPERIOD(
+        'Calendar'[Date],
+        LASTDATE('Calendar'[Date]),
+        -3,
+        MONTH
+    ),
+    [Total Sales]
+)
+
+// 7-Day Simple Moving Average
+Sales 7D SMA = 
+AVERAGEX(
+    DATESINPERIOD(
+        'Calendar'[Date],
+        LASTDATE('Calendar'[Date]),
+        -7,
+        DAY
+    ),
+    [Total Sales]
+)
+
+// 12-Month Simple Moving Average
+Sales 12M SMA = 
+AVERAGEX(
+    DATESINPERIOD(
+        'Calendar'[Date],
+        LASTDATE('Calendar'[Date]),
+        -12,
+        MONTH
+    ),
+    [Total Sales]
+)
+
+// Dynamic Moving Average (parameter-driven)
+Sales N-Period MA = 
+VAR Periods = SELECTEDVALUE('Parameters'[MA Periods], 3)
+VAR PeriodType = SELECTEDVALUE('Parameters'[Period Type], "MONTH")
+RETURN
+    AVERAGEX(
+        DATESINPERIOD(
+            'Calendar'[Date],
+            LASTDATE('Calendar'[Date]),
+            -Periods,
+            SWITCH(
+                PeriodType,
+                "DAY", DAY,
+                "WEEK", WEEK,
+                "MONTH", MONTH,
+                MONTH
+            )
+        ),
+        [Total Sales]
+    )
+
+// ------------------------------------------------
+// 2. WEIGHTED MOVING AVERAGES (WMA)
+// ------------------------------------------------
+
+// 3-Period Weighted Moving Average (3:2:1 weights)
+Sales 3P WMA = 
+VAR Period1 = [Total Sales]
+VAR Period2 = CALCULATE([Total Sales], DATEADD('Calendar'[Date], -1, MONTH))
+VAR Period3 = CALCULATE([Total Sales], DATEADD('Calendar'[Date], -2, MONTH))
+VAR TotalWeight = 3 + 2 + 1
+RETURN
+    DIVIDE(
+        (Period1 * 3) + (Period2 * 2) + (Period3 * 1),
+        TotalWeight,
+        0
+    )
+
+// Custom Weighted Moving Average
+Sales Custom WMA = 
+VAR W1 = SELECTEDVALUE('Weights'[Weight 1], 0.5)
+VAR W2 = SELECTEDVALUE('Weights'[Weight 2], 0.3)
+VAR W3 = SELECTEDVALUE('Weights'[Weight 3], 0.2)
+VAR P1 = [Total Sales]
+VAR P2 = CALCULATE([Total Sales], DATEADD('Calendar'[Date], -1, MONTH))
+VAR P3 = CALCULATE([Total Sales], DATEADD('Calendar'[Date], -2, MONTH))
+RETURN
+    (P1 * W1) + (P2 * W2) + (P3 * W3)
+
+// ------------------------------------------------
+// 3. EXPONENTIAL MOVING AVERAGES (EMA)
+// ------------------------------------------------
+
+// Exponential Moving Average (EMA)
+Sales EMA = 
+VAR Alpha = 2 / (12 + 1)  // 12-period EMA
+VAR CurrentValue = [Total Sales]
+VAR PreviousEMA = 
+    CALCULATE(
+        [Sales EMA],
+        DATEADD('Calendar'[Date], -1, MONTH)
+    )
+RETURN
+    IF(
+        ISBLANK(PreviousEMA),
+        CurrentValue,
+        (CurrentValue * Alpha) + (PreviousEMA * (1 - Alpha))
+    )
+
+// ------------------------------------------------
+// 4. RUNNING TOTALS (CUMULATIVE SUMS)
+// ------------------------------------------------
+
+// Running Total (All Time)
+Sales Running Total = 
+CALCULATE(
+    SUM('Sales'[Sales Amount]),
+    FILTER(
+        ALL('Calendar'[Date]),
+        'Calendar'[Date] <= MAX('Calendar'[Date])
+    )
+)
+
+// Running Total within Year
+Sales Running Total YTD = 
+VAR CurrentYear = YEAR(MAX('Calendar'[Date]))
+RETURN
+    CALCULATE(
+        SUM('Sales'[Sales Amount]),
+        FILTER(
+            ALL('Calendar'[Date]),
+            YEAR('Calendar'[Date]) = CurrentYear &&
+            'Calendar'[Date] <= MAX('Calendar'[Date])
+        )
+    )
+
+// Running Total by Category
+Sales Running Total by Category = 
+VAR CurrentDate = MAX('Calendar'[Date])
+VAR CurrentCategory = MAX('Products'[Category])
+RETURN
+    CALCULATE(
+        SUM('Sales'[Sales Amount]),
+        FILTER(
+            ALLEXCEPT('Calendar', 'Products'[Category]),
+            'Calendar'[Date] <= CurrentDate
+        )
+    )
+
+// Running Total with Reset (Monthly)
+Sales Running Total Month = 
+VAR CurrentMonth = MONTH(MAX('Calendar'[Date]))
+VAR CurrentYear = YEAR(MAX('Calendar'[Date]))
+RETURN
+    CALCULATE(
+        SUM('Sales'[Sales Amount]),
+        FILTER(
+            ALL('Calendar'[Date]),
+            MONTH('Calendar'[Date]) = CurrentMonth &&
+            YEAR('Calendar'[Date]) = CurrentYear &&
+            'Calendar'[Date] <= MAX('Calendar'[Date])
+        )
+    )
+
+// ------------------------------------------------
+// 5. ROLLING WINDOWS
+// ------------------------------------------------
+
+// Rolling 12-Month Total
+Sales Rolling 12M = 
+CALCULATE(
+    SUM('Sales'[Sales Amount]),
+    DATESINPERIOD(
+        'Calendar'[Date],
+        LASTDATE('Calendar'[Date]),
+        -12,
+        MONTH
+    )
+)
+
+// Rolling 90-Day Total
+Sales Rolling 90D = 
+CALCULATE(
+    SUM('Sales'[Sales Amount]),
+    DATESINPERIOD(
+        'Calendar'[Date],
+        LASTDATE('Calendar'[Date]),
+        -90,
+        DAY
+    )
+)
+
+// Rolling Quarter Total
+Sales Rolling Quarter = 
+CALCULATE(
+    SUM('Sales'[Sales Amount]),
+    DATESINPERIOD(
+        'Calendar'[Date],
+        LASTDATE('Calendar'[Date]),
+        -1,
+        QUARTER
+    )
+)
+
+// Dynamic Rolling Window
+Sales Rolling N Days = 
+VAR DaysToInclude = SELECTEDVALUE('Parameters'[Rolling Days], 30)
+RETURN
+    CALCULATE(
+        SUM('Sales'[Sales Amount]),
+        DATESINPERIOD(
+            'Calendar'[Date],
+            LASTDATE('Calendar'[Date]),
+            -DaysToInclude,
+            DAY
+        )
+    )
+
+// ------------------------------------------------
+// 6. ADVANCED TREND ANALYSIS
+// ------------------------------------------------
+
+// Moving Average Convergence (Short vs Long MA)
+MA Convergence = 
+VAR ShortMA = [Sales 3M SMA]
+VAR LongMA = [Sales 12M SMA]
+RETURN
+    ShortMA - LongMA
+
+// Trend Direction Indicator
+Trend Direction = 
+VAR CurrentMA = [Sales 3M SMA]
+VAR PreviousMA = 
+    CALCULATE(
+        [Sales 3M SMA],
+        DATEADD('Calendar'[Date], -1, MONTH)
+    )
+RETURN
+    SWITCH(
+        TRUE(),
+        CurrentMA > PreviousMA * 1.05, "📈 Strong Uptrend",
+        CurrentMA > PreviousMA, "🔼 Uptrend",
+        CurrentMA < PreviousMA * 0.95, "📉 Strong Downtrend",
+        CurrentMA < PreviousMA, "🔽 Downtrend",
+        "➡️ Neutral"
+    )
+
+// Smoothed Running Total (with MA)
+Smoothed Running Total = 
+VAR RunTotal = [Sales Running Total YTD]
+VAR DaysInPeriod = 
+    COUNTROWS(
+        FILTER(
+            ALL('Calendar'[Date]),
+            YEAR('Calendar'[Date]) = YEAR(MAX('Calendar'[Date])) &&
+            'Calendar'[Date] <= MAX('Calendar'[Date])
+        )
+    )
+RETURN
+    DIVIDE(RunTotal, DaysInPeriod, 0) * 
+    COUNTROWS(VALUES('Calendar'[Date]))

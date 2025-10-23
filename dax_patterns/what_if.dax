@@ -1,0 +1,285 @@
+// ================================================
+// WHAT-IF ANALYSIS & SCENARIO PLANNING
+// Author: Gabriel Demetrios Lafis
+// Description: Dynamic scenario analysis and sensitivity testing patterns
+// ================================================
+
+// ------------------------------------------------
+// 1. PARAMETER-BASED SCENARIOS
+// ------------------------------------------------
+
+// Price Adjustment Scenario
+Adjusted Revenue = 
+VAR PriceAdjustment = SELECTEDVALUE('What-If'[Price Change %], 0)
+VAR BaseRevenue = SUM('Sales'[Sales Amount])
+RETURN
+    BaseRevenue * (1 + PriceAdjustment)
+
+// Volume Impact Scenario
+Adjusted Volume = 
+VAR VolumeAdjustment = SELECTEDVALUE('What-If'[Volume Change %], 0)
+VAR BaseVolume = SUM('Sales'[Quantity])
+RETURN
+    BaseVolume * (1 + VolumeAdjustment)
+
+// Cost Reduction Scenario
+Adjusted Profit = 
+VAR CostReduction = SELECTEDVALUE('What-If'[Cost Reduction %], 0)
+VAR BaseRevenue = SUM('Sales'[Sales Amount])
+VAR BaseCost = SUM('Sales'[Cost])
+VAR AdjustedCost = BaseCost * (1 - CostReduction)
+RETURN
+    BaseRevenue - AdjustedCost
+
+// Combined Scenario Impact
+Scenario Impact = 
+VAR PriceChange = SELECTEDVALUE('What-If'[Price Change %], 0)
+VAR VolumeChange = SELECTEDVALUE('What-If'[Volume Change %], 0)
+VAR CostChange = SELECTEDVALUE('What-If'[Cost Change %], 0)
+VAR BaseRevenue = SUM('Sales'[Sales Amount])
+VAR BaseVolume = SUM('Sales'[Quantity])
+VAR BaseCost = SUM('Sales'[Cost])
+VAR NewRevenue = BaseRevenue * (1 + PriceChange) * (1 + VolumeChange)
+VAR NewCost = BaseCost * (1 + CostChange) * (1 + VolumeChange)
+RETURN
+    NewRevenue - NewCost
+
+// ------------------------------------------------
+// 2. SENSITIVITY ANALYSIS
+// ------------------------------------------------
+
+// Revenue Sensitivity to Price
+Revenue Sensitivity = 
+VAR BasePriceChange = 0.01  // 1% change
+VAR BaseRevenue = SUM('Sales'[Sales Amount])
+VAR RevenueAtPlus1 = BaseRevenue * (1 + BasePriceChange)
+VAR RevenueAtMinus1 = BaseRevenue * (1 - BasePriceChange)
+VAR AvgSensitivity = (RevenueAtPlus1 + RevenueAtMinus1) / 2
+RETURN
+    DIVIDE(
+        AvgSensitivity - BaseRevenue,
+        BaseRevenue * BasePriceChange,
+        0
+    )
+
+// Profit Elasticity
+Profit Elasticity = 
+VAR PriceChange = SELECTEDVALUE('What-If'[Price Change %], 0.01)
+VAR BaseProfit = SUM('Sales'[Profit])
+VAR NewProfit = [Adjusted Profit]
+VAR ProfitChange = DIVIDE(NewProfit - BaseProfit, BaseProfit, 0)
+RETURN
+    DIVIDE(ProfitChange, PriceChange, 0)
+
+// Break-Even Analysis
+Break Even Units = 
+VAR FixedCosts = SELECTEDVALUE('Parameters'[Fixed Costs], 10000)
+VAR PricePerUnit = SELECTEDVALUE('Parameters'[Price Per Unit], 100)
+VAR VariableCostPerUnit = SELECTEDVALUE('Parameters'[Variable Cost Per Unit], 60)
+VAR ContributionMargin = PricePerUnit - VariableCostPerUnit
+RETURN
+    DIVIDE(FixedCosts, ContributionMargin, 0)
+
+// Break-Even Revenue
+Break Even Revenue = 
+[Break Even Units] * SELECTEDVALUE('Parameters'[Price Per Unit], 100)
+
+// ------------------------------------------------
+// 3. SCENARIO COMPARISON
+// ------------------------------------------------
+
+// Best Case Scenario
+Best Case Revenue = 
+VAR OptimisticGrowth = 0.20  // 20% growth
+VAR BaseRevenue = SUM('Sales'[Sales Amount])
+RETURN
+    BaseRevenue * (1 + OptimisticGrowth)
+
+// Worst Case Scenario
+Worst Case Revenue = 
+VAR PessimisticGrowth = -0.10  // 10% decline
+VAR BaseRevenue = SUM('Sales'[Sales Amount])
+RETURN
+    BaseRevenue * (1 + PessimisticGrowth)
+
+// Most Likely Scenario
+Most Likely Revenue = 
+VAR RealisticGrowth = 0.05  // 5% growth
+VAR BaseRevenue = SUM('Sales'[Sales Amount])
+RETURN
+    BaseRevenue * (1 + RealisticGrowth)
+
+// Expected Value (Probability-Weighted)
+Expected Revenue = 
+VAR BestCase = [Best Case Revenue]
+VAR WorstCase = [Worst Case Revenue]
+VAR MostLikely = [Most Likely Revenue]
+VAR ProbBest = 0.20
+VAR ProbWorst = 0.20
+VAR ProbMostLikely = 0.60
+RETURN
+    (BestCase * ProbBest) + 
+    (WorstCase * ProbWorst) + 
+    (MostLikely * ProbMostLikely)
+
+// Scenario Variance
+Scenario Variance = 
+VAR BestCase = [Best Case Revenue]
+VAR WorstCase = [Worst Case Revenue]
+VAR MostLikely = [Most Likely Revenue]
+VAR ExpectedValue = [Expected Revenue]
+RETURN
+    SQRT(
+        (POWER(BestCase - ExpectedValue, 2) * 0.20) +
+        (POWER(WorstCase - ExpectedValue, 2) * 0.20) +
+        (POWER(MostLikely - ExpectedValue, 2) * 0.60)
+    )
+
+// ------------------------------------------------
+// 4. TARGET ACHIEVEMENT ANALYSIS
+// ------------------------------------------------
+
+// Target Revenue
+Target Revenue = 
+SELECTEDVALUE('Targets'[Revenue Target], 1000000)
+
+// Progress to Target
+Progress to Target % = 
+DIVIDE(
+    SUM('Sales'[Sales Amount]),
+    [Target Revenue],
+    0
+)
+
+// Gap to Target
+Gap to Target = 
+[Target Revenue] - SUM('Sales'[Sales Amount])
+
+// Required Growth Rate to Hit Target
+Required Growth Rate = 
+VAR CurrentRevenue = SUM('Sales'[Sales Amount])
+VAR TargetRevenue = [Target Revenue]
+VAR RemainingPeriods = SELECTEDVALUE('Parameters'[Remaining Periods], 12)
+RETURN
+    POWER(
+        DIVIDE(TargetRevenue, CurrentRevenue, 1),
+        1 / RemainingPeriods
+    ) - 1
+
+// Days to Target (at current run rate)
+Days to Target = 
+VAR CurrentDailyAvg = 
+    DIVIDE(
+        SUM('Sales'[Sales Amount]),
+        DISTINCTCOUNT('Calendar'[Date]),
+        0
+    )
+VAR GapToTarget = [Gap to Target]
+RETURN
+    DIVIDE(GapToTarget, CurrentDailyAvg, 0)
+
+// ------------------------------------------------
+// 5. CAPACITY PLANNING
+// ------------------------------------------------
+
+// Current Capacity Utilization
+Capacity Utilization % = 
+VAR CurrentVolume = SUM('Sales'[Quantity])
+VAR MaxCapacity = SELECTEDVALUE('Parameters'[Max Capacity], 10000)
+RETURN
+    DIVIDE(CurrentVolume, MaxCapacity, 0)
+
+// Additional Capacity Needed
+Additional Capacity Needed = 
+VAR TargetVolume = SELECTEDVALUE('Parameters'[Target Volume], 12000)
+VAR MaxCapacity = SELECTEDVALUE('Parameters'[Max Capacity], 10000)
+VAR Gap = TargetVolume - MaxCapacity
+RETURN
+    IF(Gap > 0, Gap, 0)
+
+// Capacity Investment Required
+Investment Required = 
+VAR AdditionalUnits = [Additional Capacity Needed]
+VAR CostPerUnit = SELECTEDVALUE('Parameters'[Cost Per Unit Capacity], 1000)
+RETURN
+    AdditionalUnits * CostPerUnit
+
+// ROI on Capacity Expansion
+ROI Capacity Expansion = 
+VAR Investment = [Investment Required]
+VAR AdditionalRevenue = 
+    [Additional Capacity Needed] * 
+    SELECTEDVALUE('Parameters'[Revenue Per Unit], 150)
+VAR AdditionalCosts = 
+    [Additional Capacity Needed] * 
+    SELECTEDVALUE('Parameters'[Variable Cost Per Unit], 60)
+VAR NetBenefit = AdditionalRevenue - AdditionalCosts
+RETURN
+    DIVIDE(NetBenefit, Investment, 0)
+
+// ------------------------------------------------
+// 6. PRICING OPTIMIZATION
+// ------------------------------------------------
+
+// Optimal Price Point (Maximum Profit)
+Optimal Price = 
+VAR BaseDemand = SUM('Sales'[Quantity])
+VAR BasePrice = AVERAGE('Sales'[Unit Price])
+VAR Elasticity = -1.5  // Price elasticity of demand
+VAR VariableCost = SELECTEDVALUE('Parameters'[Variable Cost Per Unit], 60)
+RETURN
+    VariableCost * DIVIDE(Elasticity, Elasticity + 1, 1)
+
+// Revenue at Optimal Price
+Revenue at Optimal Price = 
+VAR OptimalPrice = [Optimal Price]
+VAR BaseQuantity = SUM('Sales'[Quantity])
+VAR BasePrice = AVERAGE('Sales'[Unit Price])
+VAR PriceChange = DIVIDE(OptimalPrice - BasePrice, BasePrice, 0)
+VAR Elasticity = -1.5
+VAR QuantityChange = PriceChange * Elasticity
+VAR NewQuantity = BaseQuantity * (1 + QuantityChange)
+RETURN
+    OptimalPrice * NewQuantity
+
+// Profit at Optimal Price
+Profit at Optimal Price = 
+VAR Revenue = [Revenue at Optimal Price]
+VAR OptimalPrice = [Optimal Price]
+VAR BaseQuantity = SUM('Sales'[Quantity])
+VAR BasePrice = AVERAGE('Sales'[Unit Price])
+VAR PriceChange = DIVIDE(OptimalPrice - BasePrice, BasePrice, 0)
+VAR Elasticity = -1.5
+VAR QuantityChange = PriceChange * Elasticity
+VAR NewQuantity = BaseQuantity * (1 + QuantityChange)
+VAR VariableCost = SELECTEDVALUE('Parameters'[Variable Cost Per Unit], 60)
+VAR TotalCost = NewQuantity * VariableCost
+RETURN
+    Revenue - TotalCost
+
+// ------------------------------------------------
+// 7. MONTE CARLO SIMULATION (SIMPLIFIED)
+// ------------------------------------------------
+
+// Simulated Outcome Range
+Simulated Outcome = 
+VAR Mean = [Sales Mean]
+VAR StdDev = [Sales Std Dev]
+VAR RandomFactor = RAND()  // Random number between 0 and 1
+VAR ZScore = 
+    // Convert uniform random to approximate normal distribution
+    (RandomFactor - 0.5) * 6  // Rough approximation
+RETURN
+    Mean + (ZScore * StdDev)
+
+// Confidence Level Indicator
+Confidence Indicator = 
+VAR ActualValue = SUM('Sales'[Sales Amount])
+VAR LowerBound = [CI 95 Lower]
+VAR UpperBound = [CI 95 Upper]
+RETURN
+    IF(
+        ActualValue >= LowerBound && ActualValue <= UpperBound,
+        "✓ Within 95% Confidence Interval",
+        "⚠️ Outside Expected Range"
+    )
