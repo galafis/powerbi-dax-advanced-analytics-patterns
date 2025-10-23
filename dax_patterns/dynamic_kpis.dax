@@ -1,0 +1,440 @@
+// ================================================
+// DYNAMIC KPIs & PERFORMANCE METRICS
+// Author: Gabriel Demetrios Lafis
+// Description: Advanced KPI patterns with dynamic targets and conditional formatting
+// ================================================
+
+// ------------------------------------------------
+// 1. BASIC KPI MEASURES
+// ------------------------------------------------
+
+// KPI Actual Value
+KPI Actual = 
+SUM('Sales'[Sales Amount])
+
+// KPI Target
+KPI Target = 
+SUM('Targets'[Target Amount])
+
+// KPI vs Target (Absolute)
+KPI vs Target = 
+[KPI Actual] - [KPI Target]
+
+// KPI vs Target (%)
+KPI vs Target % = 
+DIVIDE(
+    [KPI vs Target],
+    [KPI Target],
+    0
+)
+
+// KPI Status
+KPI Status = 
+VAR Variance = [KPI vs Target %]
+RETURN
+    SWITCH(
+        TRUE(),
+        Variance >= 0.10, "🟢 Excellent (>10% above)",
+        Variance >= 0, "🟡 On Target",
+        Variance >= -0.10, "🟠 Below Target",
+        "🔴 Critical (<10% below)"
+    )
+
+// ------------------------------------------------
+// 2. DYNAMIC TARGET CALCULATION
+// ------------------------------------------------
+
+// Growth-Based Target
+Growth Target = 
+VAR PreviousYearSales = 
+    CALCULATE(
+        SUM('Sales'[Sales Amount]),
+        SAMEPERIODLASTYEAR('Calendar'[Date])
+    )
+VAR GrowthRate = SELECTEDVALUE('Parameters'[Target Growth %], 0.10)
+RETURN
+    PreviousYearSales * (1 + GrowthRate)
+
+// Trend-Based Target
+Trend Target = 
+VAR Last12Months = 
+    CALCULATE(
+        [Total Sales],
+        DATESINPERIOD(
+            'Calendar'[Date],
+            MAX('Calendar'[Date]),
+            -12,
+            MONTH
+        )
+    )
+VAR AvgMonthly = DIVIDE(Last12Months, 12, 0)
+VAR TrendMultiplier = 1.05  // 5% growth expected
+RETURN
+    AvgMonthly * TrendMultiplier
+
+// Seasonality-Adjusted Target
+Seasonality Target = 
+VAR CurrentMonth = MONTH(MAX('Calendar'[Date]))
+VAR HistoricalAvg = 
+    CALCULATE(
+        AVERAGE('Sales'[Sales Amount]),
+        FILTER(
+            ALL('Calendar'),
+            MONTH('Calendar'[Date]) = CurrentMonth
+        )
+    )
+VAR SeasonalityIndex = 
+    DIVIDE(
+        HistoricalAvg,
+        CALCULATE(
+            AVERAGE('Sales'[Sales Amount]),
+            ALL('Calendar')
+        ),
+        1
+    )
+VAR BaseTarget = [KPI Target]
+RETURN
+    BaseTarget * SeasonalityIndex
+
+// Composite Dynamic Target
+Dynamic Target = 
+VAR TargetType = SELECTEDVALUE('Parameters'[Target Type], "Fixed")
+RETURN
+    SWITCH(
+        TargetType,
+        "Fixed", [KPI Target],
+        "Growth-Based", [Growth Target],
+        "Trend-Based", [Trend Target],
+        "Seasonality", [Seasonality Target],
+        [KPI Target]
+    )
+
+// ------------------------------------------------
+// 3. PERFORMANCE SCORING
+// ------------------------------------------------
+
+// Performance Score (0-100)
+Performance Score = 
+VAR Actual = [KPI Actual]
+VAR Target = [Dynamic Target]
+VAR Ratio = DIVIDE(Actual, Target, 0)
+VAR Score = 
+    SWITCH(
+        TRUE(),
+        Ratio >= 1.20, 100,
+        Ratio >= 1.10, 95,
+        Ratio >= 1.00, 90,
+        Ratio >= 0.95, 85,
+        Ratio >= 0.90, 75,
+        Ratio >= 0.85, 65,
+        Ratio >= 0.80, 50,
+        Ratio >= 0.70, 30,
+        10
+    )
+RETURN
+    Score
+
+// Weighted KPI Score
+Weighted Score = 
+VAR RevenueScore = [Performance Score]
+VAR RevenueWeight = SELECTEDVALUE('Weights'[Revenue Weight], 0.40)
+VAR ProfitScore = 
+    VAR ProfitActual = SUM('Sales'[Profit])
+    VAR ProfitTarget = SUM('Targets'[Profit Target])
+    VAR ProfitRatio = DIVIDE(ProfitActual, ProfitTarget, 0)
+    RETURN
+        MIN(100, ProfitRatio * 100)
+VAR ProfitWeight = SELECTEDVALUE('Weights'[Profit Weight], 0.30)
+VAR CustomerScore = 
+    VAR CustActual = DISTINCTCOUNT('Sales'[Customer ID])
+    VAR CustTarget = SELECTEDVALUE('Targets'[Customer Target], 100)
+    VAR CustRatio = DIVIDE(CustActual, CustTarget, 0)
+    RETURN
+        MIN(100, CustRatio * 100)
+VAR CustomerWeight = SELECTEDVALUE('Weights'[Customer Weight], 0.30)
+RETURN
+    (RevenueScore * RevenueWeight) +
+    (ProfitScore * ProfitWeight) +
+    (CustomerScore * CustomerWeight)
+
+// Performance Grade
+Performance Grade = 
+VAR Score = [Performance Score]
+RETURN
+    SWITCH(
+        TRUE(),
+        Score >= 90, "A - Outstanding",
+        Score >= 80, "B - Above Average",
+        Score >= 70, "C - Satisfactory",
+        Score >= 60, "D - Needs Improvement",
+        "F - Critical"
+    )
+
+// ------------------------------------------------
+// 4. TREND INDICATORS
+// ------------------------------------------------
+
+// 3-Month Trend
+3-Month Trend = 
+VAR Current = [KPI Actual]
+VAR Month1Ago = CALCULATE([KPI Actual], DATEADD('Calendar'[Date], -1, MONTH))
+VAR Month2Ago = CALCULATE([KPI Actual], DATEADD('Calendar'[Date], -2, MONTH))
+VAR Month3Ago = CALCULATE([KPI Actual], DATEADD('Calendar'[Date], -3, MONTH))
+RETURN
+    SWITCH(
+        TRUE(),
+        Current > Month1Ago && Month1Ago > Month2Ago && Month2Ago > Month3Ago,
+            "📈 Strong Uptrend",
+        Current > Month1Ago && Month1Ago > Month2Ago,
+            "🔼 Uptrend",
+        Current < Month1Ago && Month1Ago < Month2Ago && Month2Ago < Month3Ago,
+            "📉 Strong Downtrend",
+        Current < Month1Ago && Month1Ago < Month2Ago,
+            "🔽 Downtrend",
+        "➡️ Stable"
+    )
+
+// Momentum Indicator
+Momentum = 
+VAR Current = [KPI Actual]
+VAR Previous = CALCULATE([KPI Actual], DATEADD('Calendar'[Date], -1, MONTH))
+VAR TwoMonthsAgo = CALCULATE([KPI Actual], DATEADD('Calendar'[Date], -2, MONTH))
+VAR RecentChange = DIVIDE(Current - Previous, Previous, 0)
+VAR PreviousChange = DIVIDE(Previous - TwoMonthsAgo, TwoMonthsAgo, 0)
+VAR Momentum = RecentChange - PreviousChange
+RETURN
+    SWITCH(
+        TRUE(),
+        Momentum > 0.05, "🚀 Accelerating",
+        Momentum > 0, "⬆️ Positive",
+        Momentum > -0.05, "⬇️ Slowing",
+        "🛑 Decelerating"
+    )
+
+// Volatility Index
+Volatility = 
+VAR Last6Months = 
+    CALCULATETABLE(
+        ADDCOLUMNS(
+            GENERATE(
+                CALENDAR(
+                    EOMONTH(MAX('Calendar'[Date]), -6),
+                    MAX('Calendar'[Date])
+                ),
+                CALENDAR(
+                    EOMONTH(MAX('Calendar'[Date]), -6),
+                    MAX('Calendar'[Date])
+                )
+            ),
+            "MonthSales", [KPI Actual]
+        ),
+        'Calendar'[Date] >= EOMONTH(MAX('Calendar'[Date]), -6)
+    )
+VAR AvgSales = AVERAGEX(Last6Months, [MonthSales])
+VAR StdDev = 
+    SQRT(
+        AVERAGEX(
+            Last6Months,
+            POWER([MonthSales] - AvgSales, 2)
+        )
+    )
+VAR CV = DIVIDE(StdDev, AvgSales, 0)
+RETURN
+    SWITCH(
+        TRUE(),
+        CV < 0.10, "🟢 Low Volatility",
+        CV < 0.20, "🟡 Moderate Volatility",
+        CV < 0.30, "🟠 High Volatility",
+        "🔴 Very High Volatility"
+    )
+
+// ------------------------------------------------
+// 5. FORECASTING & PROJECTION
+// ------------------------------------------------
+
+// Linear Forecast (Next Period)
+Linear Forecast = 
+VAR Last12Months = 
+    CALCULATETABLE(
+        ADDCOLUMNS(
+            GENERATE(
+                CALENDAR(
+                    EOMONTH(MAX('Calendar'[Date]), -12),
+                    MAX('Calendar'[Date])
+                ),
+                CALENDAR(
+                    EOMONTH(MAX('Calendar'[Date]), -12),
+                    MAX('Calendar'[Date])
+                )
+            ),
+            "Period", DATEDIFF(
+                EOMONTH(MAX('Calendar'[Date]), -12),
+                [Date],
+                MONTH
+            ),
+            "Sales", [KPI Actual]
+        )
+    )
+VAR N = COUNTROWS(Last12Months)
+VAR SumX = SUMX(Last12Months, [Period])
+VAR SumY = SUMX(Last12Months, [Sales])
+VAR SumXY = SUMX(Last12Months, [Period] * [Sales])
+VAR SumX2 = SUMX(Last12Months, [Period] * [Period])
+VAR Slope = DIVIDE((N * SumXY) - (SumX * SumY), (N * SumX2) - (SumX * SumX), 0)
+VAR Intercept = DIVIDE(SumY - (Slope * SumX), N, 0)
+VAR NextPeriod = N + 1
+RETURN
+    Intercept + (Slope * NextPeriod)
+
+// YTD Forecast (Year-End Projection)
+YTD Forecast = 
+VAR CurrentYTD = 
+    CALCULATE(
+        [KPI Actual],
+        DATESYTD('Calendar'[Date])
+    )
+VAR DaysElapsed = 
+    DATEDIFF(
+        DATE(YEAR(MAX('Calendar'[Date])), 1, 1),
+        MAX('Calendar'[Date]),
+        DAY
+    )
+VAR DaysInYear = 365
+VAR DailyAvg = DIVIDE(CurrentYTD, DaysElapsed, 0)
+RETURN
+    DailyAvg * DaysInYear
+
+// Target Achievement Forecast
+Target Achievement Forecast = 
+VAR CurrentYTD = [KPI Actual]
+VAR AnnualTarget = 
+    CALCULATE(
+        [KPI Target],
+        FILTER(
+            ALL('Calendar'),
+            YEAR('Calendar'[Date]) = YEAR(MAX('Calendar'[Date]))
+        )
+    )
+VAR ForecastedYearEnd = [YTD Forecast]
+RETURN
+    DIVIDE(ForecastedYearEnd, AnnualTarget, 0)
+
+// Probability of Target Achievement
+Target Achievement Probability = 
+VAR RequiredGrowth = [Required Growth Rate]
+VAR HistoricalGrowth = 
+    CALCULATE(
+        AVERAGEX(
+            VALUES('Calendar'[Month Year]),
+            [MoM Growth]
+        ),
+        DATESINPERIOD(
+            'Calendar'[Date],
+            MAX('Calendar'[Date]),
+            -12,
+            MONTH
+        )
+    )
+VAR HistoricalStdDev = 
+    CALCULATE(
+        STDEVX.S(
+            VALUES('Calendar'[Month Year]),
+            [MoM Growth]
+        ),
+        DATESINPERIOD(
+            'Calendar'[Date],
+            MAX('Calendar'[Date]),
+            -12,
+            MONTH
+        )
+    )
+VAR ZScore = DIVIDE(RequiredGrowth - HistoricalGrowth, HistoricalStdDev, 0)
+VAR Probability = 
+    SWITCH(
+        TRUE(),
+        ZScore < -2, 0.98,
+        ZScore < -1, 0.84,
+        ZScore < 0, 0.50,
+        ZScore < 1, 0.16,
+        ZScore < 2, 0.02,
+        0.01
+    )
+RETURN
+    Probability
+
+// ------------------------------------------------
+// 6. BALANCED SCORECARD
+// ------------------------------------------------
+
+// Financial Perspective Score
+Financial Score = 
+VAR RevenueScore = [Performance Score]
+VAR ProfitMarginActual = DIVIDE(SUM('Sales'[Profit]), SUM('Sales'[Sales Amount]), 0)
+VAR ProfitMarginTarget = SELECTEDVALUE('Targets'[Margin Target %], 0.20)
+VAR MarginScore = MIN(100, DIVIDE(ProfitMarginActual, ProfitMarginTarget, 0) * 100)
+RETURN
+    (RevenueScore * 0.60) + (MarginScore * 0.40)
+
+// Customer Perspective Score
+Customer Score = 
+VAR CustomerCount = DISTINCTCOUNT('Sales'[Customer ID])
+VAR CustomerTarget = SELECTEDVALUE('Targets'[Customer Target], 1000)
+VAR CustomerCountScore = MIN(100, DIVIDE(CustomerCount, CustomerTarget, 0) * 100)
+VAR SatisfactionScore = AVERAGE('Feedback'[Satisfaction Score]) * 20  // Convert 5-point to 100-point
+RETURN
+    (CustomerCountScore * 0.50) + (SatisfactionScore * 0.50)
+
+// Process Perspective Score
+Process Score = 
+VAR OrdersProcessed = DISTINCTCOUNT('Sales'[Order ID])
+VAR OrdersTarget = SELECTEDVALUE('Targets'[Orders Target], 500)
+VAR ProcessScore = MIN(100, DIVIDE(OrdersProcessed, OrdersTarget, 0) * 100)
+RETURN
+    ProcessScore
+
+// Learning & Growth Score
+Learning Score = 
+VAR NewProductsLaunched = DISTINCTCOUNT('Products'[Product ID])
+VAR ProductTarget = SELECTEDVALUE('Targets'[New Products Target], 10)
+RETURN
+    MIN(100, DIVIDE(NewProductsLaunched, ProductTarget, 0) * 100)
+
+// Balanced Scorecard Overall
+Balanced Scorecard = 
+([Financial Score] * 0.40) +
+([Customer Score] * 0.30) +
+([Process Score] * 0.20) +
+([Learning Score] * 0.10)
+
+// ------------------------------------------------
+// 7. ALERT SYSTEM
+// ------------------------------------------------
+
+// Performance Alert
+Performance Alert = 
+VAR Variance = [KPI vs Target %]
+VAR Trend = [3-Month Trend]
+RETURN
+    SWITCH(
+        TRUE(),
+        Variance < -0.15, "🚨 URGENT: Performance >15% below target",
+        Variance < -0.10, "⚠️ WARNING: Performance 10-15% below target",
+        Variance < -0.05 && Trend = "🔽 Downtrend", 
+            "⚠️ CAUTION: Declining trend approaching target",
+        Variance > 0.20, "🎉 EXCELLENT: Performance >20% above target",
+        "✅ Normal"
+    )
+
+// Risk Level
+Risk Level = 
+VAR Variance = [KPI vs Target %]
+VAR Volatility = [Volatility]
+VAR ForecastProb = [Target Achievement Probability]
+RETURN
+    SWITCH(
+        TRUE(),
+        Variance < -0.15 || ForecastProb < 0.20, "🔴 High Risk",
+        Variance < -0.10 || ForecastProb < 0.50, "🟠 Medium Risk",
+        Variance < 0 || ForecastProb < 0.80, "🟡 Low Risk",
+        "🟢 On Track"
+    )

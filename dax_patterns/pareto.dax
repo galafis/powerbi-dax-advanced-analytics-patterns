@@ -1,0 +1,348 @@
+// ================================================
+// PARETO ANALYSIS (80/20 RULE)
+// Author: Gabriel Demetrios Lafis
+// Description: DAX patterns for Pareto principle analysis and ABC classification
+// ================================================
+
+// ------------------------------------------------
+// 1. BASIC PARETO CALCULATIONS
+// ------------------------------------------------
+
+// Product Rank by Sales
+Product Rank = 
+RANKX(
+    ALL('Products'[Product Name]),
+    [Total Sales],
+    ,
+    DESC,
+    DENSE
+)
+
+// Percentage of Total Sales
+% of Total Sales = 
+DIVIDE(
+    [Total Sales],
+    CALCULATE([Total Sales], ALL('Products')),
+    0
+)
+
+// Cumulative Sales
+Cumulative Sales = 
+VAR CurrentRank = [Product Rank]
+VAR ProductsUpToCurrent = 
+    FILTER(
+        ALL('Products'[Product Name]),
+        [Product Rank] <= CurrentRank
+    )
+RETURN
+    CALCULATE(
+        [Total Sales],
+        ProductsUpToCurrent
+    )
+
+// Cumulative Percentage
+Cumulative % = 
+DIVIDE(
+    [Cumulative Sales],
+    CALCULATE([Total Sales], ALL('Products')),
+    0
+)
+
+// Is in Top 80%
+Is Top 80% = 
+IF([Cumulative %] <= 0.80, "✓ Top 80%", "Bottom 20%")
+
+// ------------------------------------------------
+// 2. ABC CLASSIFICATION
+// ------------------------------------------------
+
+// ABC Classification (by cumulative contribution)
+ABC Class = 
+VAR CumulativePct = [Cumulative %]
+RETURN
+    SWITCH(
+        TRUE(),
+        CumulativePct <= 0.70, "A - Critical (Top 70%)",
+        CumulativePct <= 0.90, "B - Important (70-90%)",
+        "C - Standard (Bottom 10%)"
+    )
+
+// ABC Class Color
+ABC Class Color = 
+VAR Class = [ABC Class]
+RETURN
+    SWITCH(
+        Class,
+        "A - Critical (Top 70%)", "🔴 Class A",
+        "B - Important (70-90%)", "🟡 Class B",
+        "C - Standard (Bottom 10%)", "🟢 Class C",
+        "Unknown"
+    )
+
+// ABC Class by Count
+ABC by Product Count = 
+VAR TotalProducts = COUNTROWS(ALL('Products'[Product Name]))
+VAR CurrentRank = [Product Rank]
+VAR PercentileRank = DIVIDE(CurrentRank, TotalProducts, 0)
+RETURN
+    SWITCH(
+        TRUE(),
+        PercentileRank <= 0.20, "A - Top 20%",
+        PercentileRank <= 0.50, "B - Middle 30%",
+        "C - Bottom 50%"
+    )
+
+// ------------------------------------------------
+// 3. PARETO PRINCIPLE VALIDATION
+// ------------------------------------------------
+
+// 80/20 Rule Check
+Pareto Validation = 
+VAR Top20Pct = 
+    CALCULATE(
+        [Total Sales],
+        FILTER(
+            ALL('Products'[Product Name]),
+            [Product Rank] <= 
+                COUNTROWS(ALL('Products'[Product Name])) * 0.20
+        )
+    )
+VAR TotalSales = CALCULATE([Total Sales], ALL('Products'))
+VAR Contribution = DIVIDE(Top20Pct, TotalSales, 0)
+RETURN
+    "Top 20% of products contribute: " & FORMAT(Contribution, "0.0%") & 
+    " of total sales" &
+    IF(
+        Contribution >= 0.75,
+        " ✓ Follows Pareto Principle",
+        " ⚠️ Distribution differs from classic 80/20"
+    )
+
+// Concentration Ratio (Top 20%)
+CR20 = 
+VAR TotalProducts = COUNTROWS(ALL('Products'[Product Name]))
+VAR Top20Count = INT(TotalProducts * 0.20)
+VAR Top20Sales = 
+    CALCULATE(
+        [Total Sales],
+        FILTER(
+            ALL('Products'[Product Name]),
+            [Product Rank] <= Top20Count
+        )
+    )
+VAR TotalSales = CALCULATE([Total Sales], ALL('Products'))
+RETURN
+    DIVIDE(Top20Sales, TotalSales, 0)
+
+// Herfindahl-Hirschman Index (Market Concentration)
+HHI = 
+SUMX(
+    ALL('Products'[Product Name]),
+    POWER([% of Total Sales], 2)
+)
+
+// Gini Coefficient (Inequality Measure)
+Gini Coefficient = 
+VAR TotalProducts = COUNTROWS(ALL('Products'[Product Name]))
+VAR Products = 
+    ADDCOLUMNS(
+        ALL('Products'[Product Name]),
+        "Sales", [Total Sales],
+        "Rank", [Product Rank]
+    )
+VAR SumOfRanks = 
+    SUMX(Products, [Rank] * [Sales])
+VAR TotalSales = 
+    SUMX(Products, [Sales])
+VAR MeanSales = DIVIDE(TotalSales, TotalProducts, 0)
+RETURN
+    DIVIDE(
+        (2 * SumOfRanks) - (TotalProducts + 1) * TotalSales,
+        TotalProducts * TotalSales,
+        0
+    )
+
+// ------------------------------------------------
+// 4. CRITICAL FEW vs TRIVIAL MANY
+// ------------------------------------------------
+
+// Critical Few (Top contributors to 80%)
+Critical Few Count = 
+VAR ProductList = 
+    ADDCOLUMNS(
+        ALL('Products'[Product Name]),
+        "CumulativePct", [Cumulative %]
+    )
+RETURN
+    COUNTROWS(
+        FILTER(
+            ProductList,
+            [CumulativePct] <= 0.80
+        )
+    )
+
+// Critical Few Percentage
+Critical Few % = 
+VAR CriticalCount = [Critical Few Count]
+VAR TotalCount = COUNTROWS(ALL('Products'[Product Name]))
+RETURN
+    DIVIDE(CriticalCount, TotalCount, 0)
+
+// Trivial Many Count
+Trivial Many Count = 
+COUNTROWS(ALL('Products'[Product Name])) - [Critical Few Count]
+
+// Focus Group (Top contributors to target %)
+Focus Group = 
+VAR TargetPct = SELECTEDVALUE('Parameters'[Target Contribution %], 0.80)
+VAR CurrentCumulative = [Cumulative %]
+RETURN
+    IF(
+        CurrentCumulative <= TargetPct,
+        "🎯 Focus Group",
+        "Low Priority"
+    )
+
+// ------------------------------------------------
+// 5. CATEGORY-SPECIFIC PARETO
+// ------------------------------------------------
+
+// Pareto Rank within Category
+Pareto Rank in Category = 
+VAR CurrentCategory = MAX('Products'[Category])
+RETURN
+    IF(
+        HASONEVALUE('Products'[Category]),
+        RANKX(
+            FILTER(
+                ALL('Products'[Product Name]),
+                RELATED('Products'[Category]) = CurrentCategory
+            ),
+            [Total Sales],
+            ,
+            DESC,
+            DENSE
+        ),
+        BLANK()
+    )
+
+// Cumulative % within Category
+Cumulative % in Category = 
+VAR CurrentCategory = MAX('Products'[Category])
+VAR CurrentRank = [Pareto Rank in Category]
+VAR ProductsInCategory = 
+    FILTER(
+        ALL('Products'[Product Name]),
+        RELATED('Products'[Category]) = CurrentCategory &&
+        [Pareto Rank in Category] <= CurrentRank
+    )
+VAR CumulativeSales = 
+    CALCULATE(
+        [Total Sales],
+        ProductsInCategory
+    )
+VAR CategoryTotal = 
+    CALCULATE(
+        [Total Sales],
+        FILTER(
+            ALL('Products'),
+            'Products'[Category] = CurrentCategory
+        )
+    )
+RETURN
+    DIVIDE(CumulativeSales, CategoryTotal, 0)
+
+// ABC within Category
+ABC in Category = 
+VAR CumulativePct = [Cumulative % in Category]
+RETURN
+    SWITCH(
+        TRUE(),
+        CumulativePct <= 0.70, "A",
+        CumulativePct <= 0.90, "B",
+        "C"
+    )
+
+// ------------------------------------------------
+// 6. DYNAMIC PARETO THRESHOLDS
+// ------------------------------------------------
+
+// Custom Pareto Threshold
+Custom Pareto Group = 
+VAR Threshold = SELECTEDVALUE('Parameters'[Pareto Threshold %], 0.80)
+VAR CurrentCumulative = [Cumulative %]
+RETURN
+    IF(
+        CurrentCumulative <= Threshold,
+        "Priority Group",
+        "Standard Group"
+    )
+
+// Multi-Tier Classification
+Multi-Tier Class = 
+VAR CumulativePct = [Cumulative %]
+RETURN
+    SWITCH(
+        TRUE(),
+        CumulativePct <= 0.50, "⭐⭐⭐ Tier 1 (Top 50%)",
+        CumulativePct <= 0.70, "⭐⭐ Tier 2 (50-70%)",
+        CumulativePct <= 0.85, "⭐ Tier 3 (70-85%)",
+        "○ Tier 4 (Bottom 15%)"
+    )
+
+// ------------------------------------------------
+// 7. PARETO INSIGHTS
+// ------------------------------------------------
+
+// Minimum Products for Target Contribution
+Min Products for 80% = 
+VAR TargetContribution = 0.80
+VAR ProductList = 
+    ADDCOLUMNS(
+        ALL('Products'[Product Name]),
+        "Rank", [Product Rank],
+        "CumulativePct", [Cumulative %]
+    )
+VAR FirstProductAboveTarget = 
+    MINX(
+        FILTER(ProductList, [CumulativePct] >= TargetContribution),
+        [Rank]
+    )
+RETURN
+    FirstProductAboveTarget
+
+// Efficiency Ratio
+Efficiency Ratio = 
+VAR ProductsFor80Pct = [Min Products for 80%]
+VAR TotalProducts = COUNTROWS(ALL('Products'[Product Name]))
+RETURN
+    DIVIDE(0.80, DIVIDE(ProductsFor80Pct, TotalProducts, 1), 0)
+
+// Pareto Impact Score
+Pareto Impact Score = 
+VAR Contribution = [% of Total Sales]
+VAR Rank = [Product Rank]
+VAR TotalProducts = COUNTROWS(ALL('Products'[Product Name]))
+VAR RelativePosition = DIVIDE(Rank, TotalProducts, 1)
+RETURN
+    DIVIDE(Contribution, RelativePosition, 0) * 100
+
+// Top Contributors Summary
+Top Contributors Summary = 
+VAR Top20Count = [Min Products for 80%]
+VAR TotalCount = COUNTROWS(ALL('Products'[Product Name]))
+VAR Top20Sales = 
+    CALCULATE(
+        [Total Sales],
+        FILTER(
+            ALL('Products'[Product Name]),
+            [Product Rank] <= Top20Count
+        )
+    )
+VAR TotalSales = CALCULATE([Total Sales], ALL('Products'))
+VAR Contribution = DIVIDE(Top20Sales, TotalSales, 0)
+RETURN
+    FORMAT(Top20Count, "#,##0") & " products (" & 
+    FORMAT(DIVIDE(Top20Count, TotalCount, 0), "0.0%") & 
+    ") generate " & FORMAT(Contribution, "0.0%") & 
+    " of revenue (" & FORMAT(Top20Sales, "$#,##0") & ")"

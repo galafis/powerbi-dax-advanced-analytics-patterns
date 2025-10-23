@@ -1,0 +1,256 @@
+// ================================================
+// PERIOD-OVER-PERIOD COMPARISON PATTERNS
+// Author: Gabriel Demetrios Lafis
+// Description: DAX patterns for comparing metrics across different time periods
+// ================================================
+
+// ------------------------------------------------
+// 1. YEAR-OVER-YEAR (YoY) COMPARISONS
+// ------------------------------------------------
+
+// Year-over-Year Growth (Absolute)
+YoY Growth = 
+VAR CurrentYear = SUM('Sales'[Sales Amount])
+VAR PreviousYear = 
+    CALCULATE(
+        SUM('Sales'[Sales Amount]),
+        SAMEPERIODLASTYEAR('Calendar'[Date])
+    )
+RETURN
+    CurrentYear - PreviousYear
+
+// Year-over-Year Growth (Percentage)
+YoY Growth % = 
+VAR CurrentYear = SUM('Sales'[Sales Amount])
+VAR PreviousYear = 
+    CALCULATE(
+        SUM('Sales'[Sales Amount]),
+        SAMEPERIODLASTYEAR('Calendar'[Date])
+    )
+RETURN
+    DIVIDE(
+        CurrentYear - PreviousYear,
+        PreviousYear,
+        0
+    )
+
+// YoY with Custom Format
+YoY Growth Text = 
+VAR GrowthPct = [YoY Growth %]
+RETURN
+    IF(
+        ISBLANK(GrowthPct),
+        "N/A",
+        FORMAT(GrowthPct, "+0.0%;-0.0%;0%")
+    )
+
+// ------------------------------------------------
+// 2. MONTH-OVER-MONTH (MoM) COMPARISONS
+// ------------------------------------------------
+
+// Month-over-Month Growth
+MoM Growth = 
+VAR CurrentMonth = SUM('Sales'[Sales Amount])
+VAR PreviousMonth = 
+    CALCULATE(
+        SUM('Sales'[Sales Amount]),
+        DATEADD('Calendar'[Date], -1, MONTH)
+    )
+RETURN
+    DIVIDE(
+        CurrentMonth - PreviousMonth,
+        PreviousMonth,
+        0
+    )
+
+// Month-over-Month with Color Indicator
+MoM Growth Indicator = 
+VAR Growth = [MoM Growth]
+RETURN
+    SWITCH(
+        TRUE(),
+        Growth > 0.05, "🟢 Strong Growth",
+        Growth > 0, "🟡 Moderate Growth",
+        Growth = 0, "⚪ No Change",
+        Growth > -0.05, "🟠 Slight Decline",
+        "🔴 Significant Decline"
+    )
+
+// ------------------------------------------------
+// 3. QUARTER-OVER-QUARTER (QoQ) COMPARISONS
+// ------------------------------------------------
+
+// Quarter-over-Quarter Growth
+QoQ Growth = 
+VAR CurrentQuarter = SUM('Sales'[Sales Amount])
+VAR PreviousQuarter = 
+    CALCULATE(
+        SUM('Sales'[Sales Amount]),
+        DATEADD('Calendar'[Date], -1, QUARTER)
+    )
+RETURN
+    DIVIDE(
+        CurrentQuarter - PreviousQuarter,
+        PreviousQuarter,
+        0
+    )
+
+// Same Quarter Last Year
+SQLY = 
+CALCULATE(
+    SUM('Sales'[Sales Amount]),
+    DATEADD('Calendar'[Date], -4, QUARTER)
+)
+
+// ------------------------------------------------
+// 4. DAY-OVER-DAY COMPARISONS
+// ------------------------------------------------
+
+// Day-over-Day Growth
+DoD Growth = 
+VAR CurrentDay = SUM('Sales'[Sales Amount])
+VAR PreviousDay = 
+    CALCULATE(
+        SUM('Sales'[Sales Amount]),
+        DATEADD('Calendar'[Date], -1, DAY)
+    )
+RETURN
+    DIVIDE(
+        CurrentDay - PreviousDay,
+        PreviousDay,
+        0
+    )
+
+// Same Day Last Week
+SDLW = 
+CALCULATE(
+    SUM('Sales'[Sales Amount]),
+    DATEADD('Calendar'[Date], -7, DAY)
+)
+
+// Week-over-Week Growth
+WoW Growth = 
+VAR CurrentWeek = SUM('Sales'[Sales Amount])
+VAR PreviousWeek = [SDLW]
+RETURN
+    DIVIDE(
+        CurrentWeek - PreviousWeek,
+        PreviousWeek,
+        0
+    )
+
+// ------------------------------------------------
+// 5. CUSTOM PERIOD COMPARISONS
+// ------------------------------------------------
+
+// Compare to N Periods Ago (Dynamic)
+Sales N Periods Ago = 
+VAR PeriodsAgo = SELECTEDVALUE('Parameters'[Periods], 1)
+VAR PeriodType = SELECTEDVALUE('Parameters'[Period Type], "MONTH")
+RETURN
+    CALCULATE(
+        SUM('Sales'[Sales Amount]),
+        DATEADD(
+            'Calendar'[Date],
+            -PeriodsAgo,
+            SWITCH(
+                PeriodType,
+                "DAY", DAY,
+                "MONTH", MONTH,
+                "QUARTER", QUARTER,
+                "YEAR", YEAR,
+                MONTH
+            )
+        )
+    )
+
+// Period-over-Period Growth (Dynamic)
+PoP Growth % = 
+VAR CurrentPeriod = SUM('Sales'[Sales Amount])
+VAR PreviousPeriod = [Sales N Periods Ago]
+RETURN
+    DIVIDE(
+        CurrentPeriod - PreviousPeriod,
+        PreviousPeriod,
+        0
+    )
+
+// ------------------------------------------------
+// 6. FISCAL PERIOD COMPARISONS
+// ------------------------------------------------
+
+// Fiscal Year-over-Year (Fiscal year starts in July)
+Fiscal YoY = 
+VAR CurrentFiscalYear = SUM('Sales'[Sales Amount])
+VAR PreviousFiscalYear = 
+    CALCULATE(
+        SUM('Sales'[Sales Amount]),
+        DATEADD('Calendar'[Date], -1, YEAR)
+    )
+RETURN
+    DIVIDE(
+        CurrentFiscalYear - PreviousFiscalYear,
+        PreviousFiscalYear,
+        0
+    )
+
+// ------------------------------------------------
+// 7. MULTI-PERIOD COMPARISONS
+// ------------------------------------------------
+
+// Compare Current vs Previous 3 Periods Average
+Current vs 3 Period Avg = 
+VAR CurrentPeriod = SUM('Sales'[Sales Amount])
+VAR Previous3Average = 
+    CALCULATE(
+        AVERAGE('Sales'[Sales Amount]),
+        DATESINPERIOD(
+            'Calendar'[Date],
+            DATEADD(MAX('Calendar'[Date]), -1, MONTH),
+            -3,
+            MONTH
+        )
+    )
+RETURN
+    DIVIDE(
+        CurrentPeriod - Previous3Average,
+        Previous3Average,
+        0
+    )
+
+// Trend Analysis (3-Period Moving Comparison)
+Trend Analysis = 
+VAR Period1 = SUM('Sales'[Sales Amount])
+VAR Period2 = CALCULATE(SUM('Sales'[Sales Amount]), DATEADD('Calendar'[Date], -1, MONTH))
+VAR Period3 = CALCULATE(SUM('Sales'[Sales Amount]), DATEADD('Calendar'[Date], -2, MONTH))
+VAR Trend = 
+    SWITCH(
+        TRUE(),
+        Period1 > Period2 && Period2 > Period3, "📈 Consistent Growth",
+        Period1 < Period2 && Period2 < Period3, "📉 Consistent Decline",
+        Period1 > Period3, "🔄 Recovering",
+        Period1 < Period3, "🔄 Declining",
+        "➡️ Stable"
+    )
+RETURN
+    Trend
+
+// ------------------------------------------------
+// 8. VARIANCE ANALYSIS
+// ------------------------------------------------
+
+// Variance to Previous Period (with status)
+Variance Analysis = 
+VAR CurrentPeriod = SUM('Sales'[Sales Amount])
+VAR PreviousPeriod = 
+    CALCULATE(
+        SUM('Sales'[Sales Amount]),
+        DATEADD('Calendar'[Date], -1, MONTH)
+    )
+VAR Variance = CurrentPeriod - PreviousPeriod
+VAR VariancePct = DIVIDE(Variance, PreviousPeriod, 0)
+RETURN
+    "Current: " & FORMAT(CurrentPeriod, "$#,##0") & 
+    " | Previous: " & FORMAT(PreviousPeriod, "$#,##0") & 
+    " | Change: " & FORMAT(VariancePct, "+0.0%;-0.0%;0%") &
+    " (" & FORMAT(Variance, "+$#,##0;-$#,##0;$0") & ")"

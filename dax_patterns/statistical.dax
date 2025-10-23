@@ -1,0 +1,361 @@
+// ================================================
+// STATISTICAL ANALYSIS PATTERNS
+// Author: Gabriel Demetrios Lafis
+// Description: Advanced statistical measures and calculations in DAX
+// ================================================
+
+// ------------------------------------------------
+// 1. MEASURES OF CENTRAL TENDENCY
+// ------------------------------------------------
+
+// Mean (Average)
+Sales Mean = 
+AVERAGE('Sales'[Sales Amount])
+
+// Median
+Sales Median = 
+MEDIAN('Sales'[Sales Amount])
+
+// Mode (Most Frequent Value)
+Sales Mode = 
+VAR FrequencyTable = 
+    ADDCOLUMNS(
+        VALUES('Sales'[Sales Amount]),
+        "Frequency", CALCULATE(COUNTROWS('Sales'))
+    )
+VAR MaxFrequency = 
+    MAXX(FrequencyTable, [Frequency])
+RETURN
+    MINX(
+        FILTER(FrequencyTable, [Frequency] = MaxFrequency),
+        'Sales'[Sales Amount]
+    )
+
+// Weighted Average
+Weighted Average = 
+SUMX(
+    'Sales',
+    'Sales'[Sales Amount] * 'Sales'[Weight]
+) / SUM('Sales'[Weight])
+
+// ------------------------------------------------
+// 2. MEASURES OF DISPERSION
+// ------------------------------------------------
+
+// Standard Deviation (Population)
+Sales Std Dev = 
+STDEV.P('Sales'[Sales Amount])
+
+// Standard Deviation (Sample)
+Sales Std Dev Sample = 
+STDEV.S('Sales'[Sales Amount])
+
+// Variance (Population)
+Sales Variance = 
+VAR.P('Sales'[Sales Amount])
+
+// Variance (Sample)
+Sales Variance Sample = 
+VAR.S('Sales'[Sales Amount])
+
+// Range
+Sales Range = 
+MAX('Sales'[Sales Amount]) - MIN('Sales'[Sales Amount])
+
+// Interquartile Range (IQR)
+Sales IQR = 
+VAR Q1 = PERCENTILEX.INC('Sales', 'Sales'[Sales Amount], 0.25)
+VAR Q3 = PERCENTILEX.INC('Sales', 'Sales'[Sales Amount], 0.75)
+RETURN
+    Q3 - Q1
+
+// Coefficient of Variation (CV)
+Sales CV = 
+DIVIDE(
+    [Sales Std Dev],
+    [Sales Mean],
+    0
+)
+
+// Mean Absolute Deviation
+Sales MAD = 
+VAR Mean = [Sales Mean]
+RETURN
+    AVERAGEX(
+        'Sales',
+        ABS('Sales'[Sales Amount] - Mean)
+    )
+
+// ------------------------------------------------
+// 3. PERCENTILES AND QUARTILES
+// ------------------------------------------------
+
+// Quartile 1 (25th Percentile)
+Sales Q1 = 
+PERCENTILEX.INC('Sales', 'Sales'[Sales Amount], 0.25)
+
+// Quartile 2 (50th Percentile / Median)
+Sales Q2 = 
+PERCENTILEX.INC('Sales', 'Sales'[Sales Amount], 0.50)
+
+// Quartile 3 (75th Percentile)
+Sales Q3 = 
+PERCENTILEX.INC('Sales', 'Sales'[Sales Amount], 0.75)
+
+// 90th Percentile
+Sales P90 = 
+PERCENTILEX.INC('Sales', 'Sales'[Sales Amount], 0.90)
+
+// 95th Percentile
+Sales P95 = 
+PERCENTILEX.INC('Sales', 'Sales'[Sales Amount], 0.95)
+
+// 99th Percentile
+Sales P99 = 
+PERCENTILEX.INC('Sales', 'Sales'[Sales Amount], 0.99)
+
+// Custom Percentile (Parameter-driven)
+Sales Custom Percentile = 
+VAR PercentileValue = SELECTEDVALUE('Parameters'[Percentile], 0.50)
+RETURN
+    PERCENTILEX.INC('Sales', 'Sales'[Sales Amount], PercentileValue)
+
+// ------------------------------------------------
+// 4. STANDARDIZATION AND NORMALIZATION
+// ------------------------------------------------
+
+// Z-Score (Standard Score)
+Sales Z-Score = 
+VAR CurrentValue = SUM('Sales'[Sales Amount])
+VAR Mean = [Sales Mean]
+VAR StdDev = [Sales Std Dev]
+RETURN
+    DIVIDE(
+        CurrentValue - Mean,
+        StdDev,
+        0
+    )
+
+// Min-Max Normalization (0-1 scale)
+Sales Normalized = 
+VAR CurrentValue = SUM('Sales'[Sales Amount])
+VAR MinValue = MIN('Sales'[Sales Amount])
+VAR MaxValue = MAX('Sales'[Sales Amount])
+RETURN
+    DIVIDE(
+        CurrentValue - MinValue,
+        MaxValue - MinValue,
+        0
+    )
+
+// Percentile Rank
+Sales Percentile Rank = 
+VAR CurrentValue = SUM('Sales'[Sales Amount])
+RETURN
+    PERCENTRANK.INC('Sales'[Sales Amount], CurrentValue)
+
+// ------------------------------------------------
+// 5. DISTRIBUTION ANALYSIS
+// ------------------------------------------------
+
+// Skewness (Asymmetry of Distribution)
+Sales Skewness = 
+VAR Mean = [Sales Mean]
+VAR StdDev = [Sales Std Dev]
+VAR N = COUNTROWS('Sales')
+RETURN
+    DIVIDE(
+        SUMX(
+            'Sales',
+            POWER(('Sales'[Sales Amount] - Mean) / StdDev, 3)
+        ),
+        N,
+        0
+    )
+
+// Kurtosis (Tail Heaviness)
+Sales Kurtosis = 
+VAR Mean = [Sales Mean]
+VAR StdDev = [Sales Std Dev]
+VAR N = COUNTROWS('Sales')
+RETURN
+    DIVIDE(
+        SUMX(
+            'Sales',
+            POWER(('Sales'[Sales Amount] - Mean) / StdDev, 4)
+        ),
+        N,
+        0
+    ) - 3
+
+// Distribution Shape Indicator
+Distribution Shape = 
+VAR Skew = [Sales Skewness]
+VAR Kurt = [Sales Kurtosis]
+RETURN
+    SWITCH(
+        TRUE(),
+        ABS(Skew) < 0.5 && ABS(Kurt) < 0.5, "📊 Normal Distribution",
+        Skew > 0.5, "📈 Right-Skewed (Positive)",
+        Skew < -0.5, "📉 Left-Skewed (Negative)",
+        Kurt > 0.5, "⛰️ Heavy-Tailed (Leptokurtic)",
+        Kurt < -0.5, "🏔️ Light-Tailed (Platykurtic)",
+        "📊 Approximately Normal"
+    )
+
+// ------------------------------------------------
+// 6. OUTLIER DETECTION
+// ------------------------------------------------
+
+// Is Outlier (IQR Method)
+Is Outlier IQR = 
+VAR CurrentValue = SUM('Sales'[Sales Amount])
+VAR Q1 = [Sales Q1]
+VAR Q3 = [Sales Q3]
+VAR IQR = [Sales IQR]
+VAR LowerBound = Q1 - (1.5 * IQR)
+VAR UpperBound = Q3 + (1.5 * IQR)
+RETURN
+    IF(
+        CurrentValue < LowerBound || CurrentValue > UpperBound,
+        "🚨 Outlier",
+        "✓ Normal"
+    )
+
+// Is Outlier (Z-Score Method)
+Is Outlier Z-Score = 
+VAR ZScore = [Sales Z-Score]
+RETURN
+    IF(
+        ABS(ZScore) > 3,
+        "🚨 Extreme Outlier",
+        IF(
+            ABS(ZScore) > 2,
+            "⚠️ Moderate Outlier",
+            "✓ Normal"
+        )
+    )
+
+// Outlier Count
+Outlier Count = 
+VAR Q1 = [Sales Q1]
+VAR Q3 = [Sales Q3]
+VAR IQR = [Sales IQR]
+VAR LowerBound = Q1 - (1.5 * IQR)
+VAR UpperBound = Q3 + (1.5 * IQR)
+RETURN
+    COUNTROWS(
+        FILTER(
+            'Sales',
+            'Sales'[Sales Amount] < LowerBound ||
+            'Sales'[Sales Amount] > UpperBound
+        )
+    )
+
+// ------------------------------------------------
+// 7. CORRELATION AND REGRESSION
+// ------------------------------------------------
+
+// Correlation Coefficient (Pearson)
+Correlation Sales vs Profit = 
+VAR N = COUNTROWS('Sales')
+VAR SumX = SUM('Sales'[Sales Amount])
+VAR SumY = SUM('Sales'[Profit])
+VAR SumXY = SUMX('Sales', 'Sales'[Sales Amount] * 'Sales'[Profit])
+VAR SumX2 = SUMX('Sales', 'Sales'[Sales Amount] * 'Sales'[Sales Amount])
+VAR SumY2 = SUMX('Sales', 'Sales'[Profit] * 'Sales'[Profit])
+VAR Numerator = (N * SumXY) - (SumX * SumY)
+VAR Denominator = 
+    SQRT((N * SumX2 - SumX * SumX) * (N * SumY2 - SumY * SumY))
+RETURN
+    DIVIDE(Numerator, Denominator, 0)
+
+// Covariance
+Covariance Sales Profit = 
+VAR MeanX = [Sales Mean]
+VAR MeanY = AVERAGE('Sales'[Profit])
+VAR N = COUNTROWS('Sales')
+RETURN
+    DIVIDE(
+        SUMX(
+            'Sales',
+            ('Sales'[Sales Amount] - MeanX) * ('Sales'[Profit] - MeanY)
+        ),
+        N,
+        0
+    )
+
+// Linear Regression Slope
+Regression Slope = 
+VAR MeanX = [Sales Mean]
+VAR MeanY = AVERAGE('Sales'[Profit])
+VAR N = COUNTROWS('Sales')
+VAR SumXY = SUMX('Sales', ('Sales'[Sales Amount] - MeanX) * ('Sales'[Profit] - MeanY))
+VAR SumX2 = SUMX('Sales', POWER('Sales'[Sales Amount] - MeanX, 2))
+RETURN
+    DIVIDE(SumXY, SumX2, 0)
+
+// Linear Regression Intercept
+Regression Intercept = 
+VAR MeanX = [Sales Mean]
+VAR MeanY = AVERAGE('Sales'[Profit])
+VAR Slope = [Regression Slope]
+RETURN
+    MeanY - (Slope * MeanX)
+
+// R-Squared (Coefficient of Determination)
+R-Squared = 
+POWER([Correlation Sales vs Profit], 2)
+
+// ------------------------------------------------
+// 8. CONFIDENCE INTERVALS
+// ------------------------------------------------
+
+// Confidence Interval (95%) - Lower Bound
+CI 95 Lower = 
+VAR Mean = [Sales Mean]
+VAR StdDev = [Sales Std Dev]
+VAR N = COUNTROWS('Sales')
+VAR SE = DIVIDE(StdDev, SQRT(N), 0)
+VAR Z = 1.96  // 95% confidence level
+RETURN
+    Mean - (Z * SE)
+
+// Confidence Interval (95%) - Upper Bound
+CI 95 Upper = 
+VAR Mean = [Sales Mean]
+VAR StdDev = [Sales Std Dev]
+VAR N = COUNTROWS('Sales')
+VAR SE = DIVIDE(StdDev, SQRT(N), 0)
+VAR Z = 1.96  // 95% confidence level
+RETURN
+    Mean + (Z * SE)
+
+// Margin of Error
+Margin of Error 95 = 
+VAR StdDev = [Sales Std Dev]
+VAR N = COUNTROWS('Sales')
+VAR SE = DIVIDE(StdDev, SQRT(N), 0)
+VAR Z = 1.96
+RETURN
+    Z * SE
+
+// ------------------------------------------------
+// 9. ADVANCED STATISTICAL TESTS
+// ------------------------------------------------
+
+// Standard Error of the Mean
+Standard Error = 
+DIVIDE(
+    [Sales Std Dev],
+    SQRT(COUNTROWS('Sales')),
+    0
+)
+
+// Sample Size Calculation (for desired margin of error)
+Required Sample Size = 
+VAR DesiredMargin = SELECTEDVALUE('Parameters'[Desired Margin], 100)
+VAR StdDev = [Sales Std Dev]
+VAR Z = 1.96  // 95% confidence
+RETURN
+    POWER((Z * StdDev) / DesiredMargin, 2)
