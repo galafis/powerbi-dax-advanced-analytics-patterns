@@ -2,6 +2,8 @@
 
 ![Power BI](https://img.shields.io/badge/Power%20BI-F2C811?style=for-the-badge&logo=power-bi&logoColor=black) ![DAX](https://img.shields.io/badge/DAX-2E8B57?style=for-the-badge) ![M Language](https://img.shields.io/badge/M_Language-0078D4?style=for-the-badge)
 
+[![DAX Validation](https://github.com/galafis/powerbi-dax-advanced-analytics-patterns/actions/workflows/dax-validation.yml/badge.svg)](https://github.com/galafis/powerbi-dax-advanced-analytics-patterns/actions/workflows/dax-validation.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 ---
 
 ## 🇧🇷 Padrões Avançados de DAX para Power BI
@@ -25,44 +27,50 @@ DAX é a linguagem de fórmulas do Power BI, mas dominar seus conceitos avançad
 
 ### 📊 Padrões DAX Incluídos
 
-Este repositório contém **9 categorias** de padrões DAX:
+Este repositório contém **9 categorias** de padrões DAX com **mais de 290 medidas prontas**:
 
-1. **Time Intelligence** (15 medidas)
-2. **Comparações Período-a-Período** (8 medidas)
-3. **Moving Averages & Running Totals** (6 medidas)
-4. **Ranking & Top N** (5 medidas)
-5. **Análise de Cohort** (4 medidas)
-6. **Cálculos Estatísticos** (7 medidas)
-7. **What-If Analysis** (3 medidas)
-8. **Análise de Pareto** (3 medidas)
-9. **KPIs Dinâmicos** (5 medidas)
+1. **Time Intelligence** (21 medidas) - YTD, MTD, QTD, YoY, MoM, SPLY
+2. **Comparações Período-a-Período** (25 medidas) - YoY, MoM, QoQ, DoD, WoW
+3. **Moving Averages & Running Totals** (21 medidas) - SMA, EMA, WMA, cumulative sums
+4. **Ranking & Top N** (31 medidas) - Rankings, Top N, percentages, tiers
+5. **Análise de Cohort** (42 medidas) - Retention, LTV, churn, behavior metrics
+6. **Cálculos Estatísticos** (41 medidas) - Mean, median, std dev, percentiles, correlation
+7. **What-If Analysis** (31 medidas) - Scenarios, sensitivity, forecasts, optimization
+8. **Análise de Pareto** (37 medidas) - ABC classification, 80/20, Gini coefficient
+9. **KPIs Dinâmicos** (42 medidas) - Performance scores, trends, alerts, balanced scorecard
 
-**Total: 56 medidas DAX prontas para uso!**
+**Total: 291 medidas DAX prontas para uso!** ✅ Todas validadas automaticamente
 
 ### 📂 Estrutura do Repositório
 
 ```
 powerbi-dax-advanced-analytics-patterns/
-├── dax_patterns/
-│   ├── time_intelligence.dax          # 15 medidas de time intelligence
-│   ├── period_comparisons.dax         # Comparações YoY, MoM, etc.
-│   ├── moving_averages.dax            # Médias móveis e running totals
-│   ├── ranking.dax                    # Top N, ranking dinâmico
-│   ├── cohort_analysis.dax            # Análise de retenção
-│   ├── statistical.dax                # Medidas estatísticas
-│   ├── what_if.dax                    # Análise de cenários
-│   ├── pareto.dax                     # Análise 80/20
-│   └── dynamic_kpis.dax               # KPIs com targets dinâmicos
-├── pbix_files/
-│   └── dax_patterns_demo.pbix         # Dashboard com todos os exemplos
-├── data_model/
-│   ├── star_schema_diagram.png        # Diagrama do modelo dimensional
-│   └── best_practices.md              # Melhores práticas de modelagem
-├── examples/
-│   ├── sales_analysis.md              # Exemplo: Análise de vendas
-│   ├── customer_retention.md          # Exemplo: Retenção de clientes
-│   └── inventory_optimization.md      # Exemplo: Otimização de estoque
-└── README.md
+├── dax_patterns/                        # 📊 DAX Formula Library
+│   ├── time_intelligence.dax            # 21 time-based measures
+│   ├── period_comparisons.dax           # 25 period comparison measures
+│   ├── moving_averages.dax              # 21 moving averages & running totals
+│   ├── ranking.dax                      # 31 ranking & Top N measures
+│   ├── cohort_analysis.dax              # 42 cohort & retention measures
+│   ├── statistical.dax                  # 41 statistical measures
+│   ├── what_if.dax                      # 31 scenario analysis measures
+│   ├── pareto.dax                       # 37 Pareto & ABC classification measures
+│   └── dynamic_kpis.dax                 # 42 KPI & performance measures
+├── examples/                            # 📚 Real-World Use Cases
+│   ├── sales_analysis.md                # Sales performance analysis
+│   ├── customer_retention.md            # Cohort & retention analysis
+│   └── inventory_optimization.md        # Inventory management
+├── data_model/                          # 🗂️ Data Modeling Guide
+│   └── best_practices.md                # Star schema, optimization, patterns
+├── tests/                               # ✅ Validation & Testing
+│   ├── validate_dax.py                  # DAX syntax validator
+│   └── README.md                        # Testing documentation
+├── .github/workflows/                   # 🔄 CI/CD Pipeline
+│   └── dax-validation.yml               # Automated DAX validation
+├── images/                              # 🖼️ Visual Assets
+├── INSTALL.md                           # Installation guide
+├── CONTRIBUTING.md                      # Contribution guidelines
+├── LICENSE                              # MIT License
+└── README.md                            # This file
 ```
 
 ### 🚀 Como Usar
@@ -502,26 +510,66 @@ SUMMARIZECOLUMNS(
 ORDER BY 'Calendar'[Year], 'Calendar'[Month]
 ```
 
+### ✅ Validação Automatizada
+
+Este repositório inclui **validação automatizada de DAX** para garantir qualidade:
+
+#### Executar Validação Local
+```bash
+# Validar todos os arquivos DAX
+python3 tests/validate_dax.py dax_patterns/
+
+# Validar arquivo específico
+python3 tests/validate_dax.py dax_patterns/time_intelligence.dax -v
+```
+
+#### O que é Validado?
+- ✅ Sintaxe básica de DAX
+- ✅ Parênteses, colchetes e chaves balanceados
+- ✅ Estrutura de definição de medidas
+- ⚠️ Uso de melhores práticas (DIVIDE, etc.)
+- ❌ Funções inexistentes (SUMIF, COUNTIF)
+- ❌ Erros comuns de sintaxe
+
+#### CI/CD com GitHub Actions
+Toda alteração em arquivos DAX é automaticamente validada via GitHub Actions.
+
+Badge de Status: [![DAX Validation](https://github.com/galafis/powerbi-dax-advanced-analytics-patterns/actions/workflows/dax-validation.yml/badge.svg)](https://github.com/galafis/powerbi-dax-advanced-analytics-patterns/actions/workflows/dax-validation.yml)
+
 ### 🎯 Próximos Passos
 
+- [x] ~~Adicionar padrões de modelagem dimensional~~
+- [x] ~~Implementar testes automatizados de DAX~~
 - [ ] Adicionar exemplos de Power Query M
-- [ ] Criar templates de dashboards
-- [ ] Adicionar padrões de modelagem dimensional
-- [ ] Implementar testes automatizados de DAX
+- [ ] Criar templates de dashboards (.pbix)
 - [ ] Criar vídeos tutoriais
+- [ ] Adicionar diagramas visuais de arquitetura
 
 ### 🔗 Recursos Adicionais
 
-- [DAX Guide](https://dax.guide/)
-- [SQLBI - DAX Patterns](https://www.daxpatterns.com/)
-- [DAX Studio](https://daxstudio.org/)
-- [Power BI Documentation](https://docs.microsoft.com/power-bi/)
+- [DAX Guide](https://dax.guide/) - Referência completa de funções DAX
+- [SQLBI - DAX Patterns](https://www.daxpatterns.com/) - Padrões avançados
+- [DAX Studio](https://daxstudio.org/) - Ferramenta gratuita para desenvolvimento DAX
+- [Power BI Documentation](https://docs.microsoft.com/power-bi/) - Documentação oficial Microsoft
+
+### 🤝 Como Contribuir
+
+Contribuições são bem-vindas! Veja [CONTRIBUTING.md](CONTRIBUTING.md) para detalhes sobre:
+- Como reportar bugs
+- Como sugerir melhorias
+- Como adicionar novos padrões DAX
+- Diretrizes de código e estilo
+- Processo de Pull Request
+
+### 📄 Licença
+
+Este projeto está licenciado sob a Licença MIT - veja o arquivo [LICENSE](LICENSE) para detalhes.
 
 ---
 
 ## 🇬🇧 Power BI Advanced Analytics with DAX
 
-This repository is a **complete and professional collection** of advanced patterns and techniques for performing complex analysis in Power BI using **DAX (Data Analysis Expressions)**. Contains over **50 ready-to-use DAX measures** covering from time intelligence to advanced statistical calculations.
+This repository is a **complete and professional collection** of advanced patterns and techniques for performing complex analysis in Power BI using **DAX (Data Analysis Expressions)**. Contains over **290 ready-to-use DAX measures** covering from time intelligence to advanced statistical calculations.
 
 ### 🚀 Quick Start
 
@@ -531,17 +579,69 @@ This repository is a **complete and professional collection** of advanced patter
 4. Adapt table/column names
 5. Test and validate
 
-### 🎓 Key Learnings
+### 🎓 What You'll Learn
 
-- ✅ Master time intelligence functions
-- ✅ Implement complex business logic
+- ✅ Master time intelligence functions (YTD, YoY, MoM)
+- ✅ Implement complex business logic with variables
 - ✅ Optimize DAX for performance
 - ✅ Build enterprise-grade dashboards
-- ✅ Apply statistical analysis
+- ✅ Apply statistical analysis (correlation, regression, percentiles)
+- ✅ Create dynamic KPIs with conditional formatting
+- ✅ Perform cohort analysis and customer retention tracking
+- ✅ Implement What-If scenarios and forecasting
+
+### 📚 Real-World Examples
+
+Explore complete use cases with step-by-step DAX implementation:
+
+- **[Sales Analysis](examples/sales_analysis.md)** - Revenue performance, Pareto analysis, regional trends
+- **[Customer Retention](examples/customer_retention.md)** - Cohort tracking, LTV calculation, churn prediction
+- **[Inventory Optimization](examples/inventory_optimization.md)** - ABC classification, reorder points, stockout prevention
+
+### 🎯 Repository Features
+
+- ✅ **291 Production-Ready DAX Measures** across 9 categories
+- ✅ **Automated Validation** - All formulas syntax-checked via CI/CD
+- ✅ **Comprehensive Documentation** - Every pattern explained with examples
+- ✅ **Real-World Use Cases** - Practical business scenarios
+- ✅ **Data Modeling Best Practices** - Star schema, optimization tips
+- ✅ **MIT Licensed** - Free to use in your projects
+
+### 🔧 Quality Assurance
+
+Every DAX formula is automatically validated for:
+- Syntax correctness
+- Balanced parentheses/brackets
+- Best practices adherence
+- Common mistake prevention
+
+Run validation locally:
+```bash
+python3 tests/validate_dax.py dax_patterns/ -v
+```
 - ✅ Create dynamic KPIs
+
+### 🌟 Support This Project
+
+If you find this repository helpful, please:
+- ⭐ Star this repository
+- 🔀 Fork and contribute
+- 🐛 Report issues
+- 💡 Suggest new patterns
+- 📣 Share with your network
+
+### 👨‍💻 Author & Maintainer
+
+**Gabriel Demetrios Lafis**
+
+### 📬 Connect
+
+- 💼 [GitHub Profile](https://github.com/galafis)
+- 🔗 [LinkedIn](https://linkedin.com)
+- 📧 Questions? Open an issue or discussion
 
 ---
 
-**Author:** Gabriel Demetrios Lafis  
+**Last Updated:** October 2025  
 **License:** MIT  
-**Last Updated:** October 2025
+**Status:** ✅ Active Development
