@@ -2,7 +2,7 @@
 
 ![Power BI](https://img.shields.io/badge/Power%20BI-F2C811?style=for-the-badge&logo=power-bi&logoColor=black) ![DAX](https://img.shields.io/badge/DAX-2E8B57?style=for-the-badge) ![M Language](https://img.shields.io/badge/M_Language-0078D4?style=for-the-badge)
 
-[![DAX Validation](https://github.com/galafis/powerbi-dax-advanced-analytics-patterns/actions/workflows/dax-validation.yml/badge.svg)](https://github.com/galafis/powerbi-dax-advanced-analytics-patterns/actions/workflows/dax-validation.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ---
 
@@ -64,8 +64,6 @@ powerbi-dax-advanced-analytics-patterns/
 ├── tests/                               # ✅ Validation & Testing
 │   ├── validate_dax.py                  # DAX syntax validator
 │   └── README.md                        # Testing documentation
-├── .github/workflows/                   # 🔄 CI/CD Pipeline
-│   └── dax-validation.yml               # Automated DAX validation
 ├── images/                              # 🖼️ Visual Assets
 ├── INSTALL.md                           # Installation guide
 ├── CONTRIBUTING.md                      # Contribution guidelines
@@ -530,11 +528,6 @@ python3 tests/validate_dax.py dax_patterns/time_intelligence.dax -v
 - ⚠️ Uso de melhores práticas (DIVIDE, etc.)
 - ❌ Funções inexistentes (SUMIF, COUNTIF)
 - ❌ Erros comuns de sintaxe
-
-#### CI/CD com GitHub Actions
-Toda alteração em arquivos DAX é automaticamente validada via GitHub Actions.
-
-Badge de Status: [![DAX Validation](https://github.com/galafis/powerbi-dax-advanced-analytics-patterns/actions/workflows/dax-validation.yml/badge.svg)](https://github.com/galafis/powerbi-dax-advanced-analytics-patterns/actions/workflows/dax-validation.yml)
 
 ### 🎯 Próximos Passos
 
