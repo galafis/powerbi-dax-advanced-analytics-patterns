@@ -61,7 +61,6 @@ The repository uses GitHub Actions to automatically validate DAX files on:
 - Pull requests to main branch
 
 ### Workflow Status
-[![DAX Validation](https://github.com/galafis/powerbi-dax-advanced-analytics-patterns/actions/workflows/dax-validation.yml/badge.svg)](https://github.com/galafis/powerbi-dax-advanced-analytics-patterns/actions/workflows/dax-validation.yml)
 
 ### What Gets Validated
 - All `.dax` files in `dax_patterns/` directory
