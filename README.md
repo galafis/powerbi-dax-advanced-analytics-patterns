@@ -8,15 +8,15 @@
 
 ## 🇧🇷 Padrões Avançados de DAX para Power BI
 
-Este repositório é uma **coleção completa e profissional** de padrões e técnicas avançadas para realizar análises complexas no Power BI utilizando **DAX (Data Analysis Expressions)**. Contém mais de **50 medidas DAX** prontas para uso, cobrindo desde time intelligence até cálculos estatísticos avançados.
+Este repositório reúne padrões e técnicas avançadas para realizar análises complexas no Power BI utilizando **DAX (Data Analysis Expressions)**. Inclui medidas DAX prontas para uso, cobrindo desde time intelligence até cálculos estatísticos.
 
 ### 🎯 Objetivo
 
 Fornecer um guia prático e funcional com exemplos de código DAX para resolver problemas reais de negócio, permitindo que analistas e desenvolvedores de BI criem dashboards de nível empresarial com performance otimizada.
 
-### 🌟 Por que DAX Avançado?
+### Por que DAX Avançado?
 
-DAX é a linguagem de fórmulas do Power BI, mas dominar seus conceitos avançados separa analistas básicos de especialistas:
+DAX é a linguagem de fórmulas do Power BI. Dominar seus conceitos avançados é o que diferencia análises básicas de análises realmente úteis:
 
 | Nível | Conhecimento | Impacto |
 |-------|--------------|---------|
@@ -27,7 +27,7 @@ DAX é a linguagem de fórmulas do Power BI, mas dominar seus conceitos avançad
 
 ### 📊 Padrões DAX Incluídos
 
-Este repositório contém **9 categorias** de padrões DAX com **mais de 290 medidas prontas**:
+Este repositório contém **9 categorias** de padrões DAX:
 
 1. **Time Intelligence** (21 medidas) - YTD, MTD, QTD, YoY, MoM, SPLY
 2. **Comparações Período-a-Período** (25 medidas) - YoY, MoM, QoQ, DoD, WoW
@@ -39,7 +39,7 @@ Este repositório contém **9 categorias** de padrões DAX com **mais de 290 med
 8. **Análise de Pareto** (37 medidas) - ABC classification, 80/20, Gini coefficient
 9. **KPIs Dinâmicos** (42 medidas) - Performance scores, trends, alerts, balanced scorecard
 
-**Total: 291 medidas DAX prontas para uso!** ✅ Todas validadas automaticamente
+Cada categoria contém múltiplas medidas prontas para adaptar ao seu modelo de dados.
 
 ### 📂 Estrutura do Repositório
 
@@ -563,7 +563,7 @@ Este projeto está licenciado sob a Licença MIT - veja o arquivo [LICENSE](LICE
 
 ## 🇬🇧 Power BI Advanced Analytics with DAX
 
-This repository is a **complete and professional collection** of advanced patterns and techniques for performing complex analysis in Power BI using **DAX (Data Analysis Expressions)**. Contains over **290 ready-to-use DAX measures** covering from time intelligence to advanced statistical calculations.
+A collection of advanced patterns and techniques for performing complex analysis in Power BI using **DAX (Data Analysis Expressions)**, covering time intelligence, statistical calculations, and more.
 
 ### 🚀 Quick Start
 
@@ -573,16 +573,15 @@ This repository is a **complete and professional collection** of advanced patter
 4. Adapt table/column names
 5. Test and validate
 
-### 🎓 What You'll Learn
+### What's Covered
 
-- ✅ Master time intelligence functions (YTD, YoY, MoM)
-- ✅ Implement complex business logic with variables
-- ✅ Optimize DAX for performance
-- ✅ Build enterprise-grade dashboards
-- ✅ Apply statistical analysis (correlation, regression, percentiles)
-- ✅ Create dynamic KPIs with conditional formatting
-- ✅ Perform cohort analysis and customer retention tracking
-- ✅ Implement What-If scenarios and forecasting
+- Time intelligence functions (YTD, YoY, MoM)
+- Complex business logic with variables
+- DAX performance optimization
+- Statistical analysis (correlation, regression, percentiles)
+- Dynamic KPIs with conditional formatting
+- Cohort analysis and customer retention tracking
+- What-If scenarios and forecasting
 
 ### 📚 Real-World Examples
 
@@ -594,12 +593,12 @@ Explore complete use cases with step-by-step DAX implementation:
 
 ### 🎯 Repository Features
 
-- ✅ **291 Production-Ready DAX Measures** across 9 categories
-- ✅ **Automated Validation** - All formulas syntax-checked via CI/CD
-- ✅ **Comprehensive Documentation** - Every pattern explained with examples
-- ✅ **Real-World Use Cases** - Practical business scenarios
-- ✅ **Data Modeling Best Practices** - Star schema, optimization tips
-- ✅ **MIT Licensed** - Free to use in your projects
+- **DAX Measures** across 9 categories, ready to adapt
+- **Validation Script** - Syntax-check formulas locally with the included Python validator
+- **Documentation** - Each pattern explained with examples
+- **Real-World Use Cases** - Practical business scenarios
+- **Data Modeling Guide** - Star schema design, optimization tips
+- **MIT Licensed** - Free to use in your projects
 
 ### 🔧 Quality Assurance
 
@@ -613,18 +612,8 @@ Run validation locally:
 ```bash
 python3 tests/validate_dax.py dax_patterns/ -v
 ```
-- ✅ Create dynamic KPIs
 
-### 🌟 Support This Project
-
-If you find this repository helpful, please:
-- ⭐ Star this repository
-- 🔀 Fork and contribute
-- 🐛 Report issues
-- 💡 Suggest new patterns
-- 📣 Share with your network
-
-### 👨‍💻 Author & Maintainer
+### Author
 
 **Gabriel Demetrios Lafis**
 
@@ -636,6 +625,4 @@ If you find this repository helpful, please:
 
 ---
 
-**Last Updated:** October 2025  
-**License:** MIT  
-**Status:** ✅ Active Development
+**License:** MIT

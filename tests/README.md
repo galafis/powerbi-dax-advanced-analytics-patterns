@@ -54,55 +54,6 @@ python3 tests/validate_dax.py dax_patterns/time_intelligence.dax -v
 python3 tests/validate_dax.py dax_patterns/time_intelligence.dax dax_patterns/ranking.dax -v
 ```
 
-## CI/CD Pipeline
-
-The repository uses GitHub Actions to automatically validate DAX files on:
-- Push to main/develop branches
-- Pull requests to main branch
-
-### Workflow Status
-[![DAX Validation](https://github.com/galafis/powerbi-dax-advanced-analytics-patterns/actions/workflows/dax-validation.yml/badge.svg)](https://github.com/galafis/powerbi-dax-advanced-analytics-patterns/actions/workflows/dax-validation.yml)
-
-### What Gets Validated
-- All `.dax` files in `dax_patterns/` directory
-- Syntax correctness
-- Best practice adherence
-- Common mistake detection
-
-## Adding New DAX Patterns
-
-When adding new DAX patterns:
-
-1. **Create file** in `dax_patterns/` directory
-2. **Follow naming convention**: `pattern_name.dax`
-3. **Use consistent format**:
-   ```dax
-   // ================================================
-   // PATTERN CATEGORY NAME
-   // Author: Your Name
-   // Description: Brief description
-   // ================================================
-   
-   // ------------------------------------------------
-   // 1. SUBCATEGORY NAME
-   // ------------------------------------------------
-   
-   // Measure Name
-   Measure Name = 
-   VAR Variable1 = ...
-   RETURN
-       Variable1
-   ```
-
-4. **Run validator** before committing:
-   ```bash
-   python3 tests/validate_dax.py dax_patterns/your_new_file.dax -v
-   ```
-
-5. **Fix any errors or warnings** reported
-
-6. **Commit and push** - CI will automatically validate
-
 ## Validation Rules
 
 ### Error Level (Must Fix)
@@ -140,6 +91,38 @@ Use DAX Studio to:
 - Analyze query plan
 - Check storage engine vs formula engine usage
 - Optimize if needed
+
+## Adding New DAX Patterns
+
+When adding new DAX patterns:
+
+1. **Create file** in `dax_patterns/` directory
+2. **Follow naming convention**: `pattern_name.dax`
+3. **Use consistent format**:
+   ```dax
+   // ================================================
+   // PATTERN CATEGORY NAME
+   // Author: Your Name
+   // Description: Brief description
+   // ================================================
+   
+   // ------------------------------------------------
+   // 1. SUBCATEGORY NAME
+   // ------------------------------------------------
+   
+   // Measure Name
+   Measure Name = 
+   VAR Variable1 = ...
+   RETURN
+       Variable1
+   ```
+
+4. **Run validator** before committing:
+   ```bash
+   python3 tests/validate_dax.py dax_patterns/your_new_file.dax -v
+   ```
+
+5. **Fix any errors or warnings** reported
 
 ## Contributing Tests
 

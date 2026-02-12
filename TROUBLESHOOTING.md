@@ -274,25 +274,6 @@ SUM('YourSalesTable'[YourAmountColumn])
 2. Check if referenced tables/columns exist
 3. Adapt measure to your model structure
 
-### GitHub Actions / CI Issues
-
-#### Issue: DAX validation workflow failing
-
-**Check workflow logs:**
-1. Go to repository → Actions tab
-2. Click on failed workflow run
-3. Review error messages
-
-**Common Fixes:**
-```bash
-# Locally test before pushing
-python3 tests/validate_dax.py dax_patterns/ -v
-
-# Check if DAX files have syntax errors
-# Fix any reported errors
-# Commit and push again
-```
-
 ### Data Model Issues
 
 #### Issue: Relationships not working
@@ -392,4 +373,4 @@ Error Message: None, just shows blank
 
 - 🐛 [GitHub Issues](https://github.com/galafis/powerbi-dax-advanced-analytics-patterns/issues) - Bug reports and feature requests
 - 💡 [GitHub Discussions](https://github.com/galafis/powerbi-dax-advanced-analytics-patterns/discussions) - Questions and discussions
-- ⭐ Star this repository if it helped you!
+
