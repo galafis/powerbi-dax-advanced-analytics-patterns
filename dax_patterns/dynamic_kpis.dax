@@ -214,21 +214,13 @@ RETURN
 // Volatility Index
 Volatility = 
 VAR Last6Months = 
-    CALCULATETABLE(
-        ADDCOLUMNS(
-            GENERATE(
-                CALENDAR(
-                    EOMONTH(MAX('Calendar'[Date]), -6),
-                    MAX('Calendar'[Date])
-                ),
-                CALENDAR(
-                    EOMONTH(MAX('Calendar'[Date]), -6),
-                    MAX('Calendar'[Date])
-                )
-            ),
-            "MonthSales", [KPI Actual]
-        ),
-        'Calendar'[Date] >= EOMONTH(MAX('Calendar'[Date]), -6)
+    ADDCOLUMNS(
+        GENERATESERIES(0, 5, 1),
+        "MonthSales",
+            CALCULATE(
+                [KPI Actual],
+                DATEADD('Calendar'[Date], -[Value], MONTH)
+            )
     )
 VAR AvgSales = AVERAGEX(Last6Months, [MonthSales])
 VAR StdDev = 
@@ -242,10 +234,10 @@ VAR CV = DIVIDE(StdDev, AvgSales, 0)
 RETURN
     SWITCH(
         TRUE(),
-        CV < 0.10, "🟢 Low Volatility",
-        CV < 0.20, "🟡 Moderate Volatility",
-        CV < 0.30, "🟠 High Volatility",
-        "🔴 Very High Volatility"
+        CV < 0.10, "Low Volatility",
+        CV < 0.20, "Moderate Volatility",
+        CV < 0.30, "High Volatility",
+        "Very High Volatility"
     )
 
 // ------------------------------------------------
@@ -255,25 +247,14 @@ RETURN
 // Linear Forecast (Next Period)
 Linear Forecast = 
 VAR Last12Months = 
-    CALCULATETABLE(
-        ADDCOLUMNS(
-            GENERATE(
-                CALENDAR(
-                    EOMONTH(MAX('Calendar'[Date]), -12),
-                    MAX('Calendar'[Date])
-                ),
-                CALENDAR(
-                    EOMONTH(MAX('Calendar'[Date]), -12),
-                    MAX('Calendar'[Date])
-                )
-            ),
-            "Period", DATEDIFF(
-                EOMONTH(MAX('Calendar'[Date]), -12),
-                [Date],
-                MONTH
-            ),
-            "Sales", [KPI Actual]
-        )
+    ADDCOLUMNS(
+        GENERATESERIES(0, 11, 1),
+        "Period", [Value],
+        "Sales",
+            CALCULATE(
+                [KPI Actual],
+                DATEADD('Calendar'[Date], -[Value], MONTH)
+            )
     )
 VAR N = COUNTROWS(Last12Months)
 VAR SumX = SUMX(Last12Months, [Period])
