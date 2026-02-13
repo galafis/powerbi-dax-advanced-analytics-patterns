@@ -4,11 +4,11 @@ DAX Syntax Validator
 Validates DAX formula files for common syntax errors and best practices
 """
 
+import argparse
+import json
 import re
 import sys
 from pathlib import Path
-from typing import List, Tuple, Dict
-import json
 
 
 class DAXValidator:
@@ -98,6 +98,7 @@ class DAXValidator:
     def _check_measure_definitions(self, content: str, filepath: Path):
         """Check measure definitions"""
         # Pattern for measure definition: MeasureName = ...
+        # Must NOT match VAR lines (VAR Name = ...) or lines inside expressions
         measure_pattern = r'^([A-Za-z0-9_][A-Za-z0-9_ %-]*)\s*=\s*$'
         
         lines = content.split('\n')
@@ -108,6 +109,10 @@ class DAXValidator:
             
             # Skip comments
             if line_stripped.startswith('//') or line_stripped.startswith('--'):
+                continue
+            
+            # Skip VAR assignments (VAR Name = ...)
+            if line_stripped.upper().startswith('VAR '):
                 continue
             
             # Check for measure definition
@@ -142,7 +147,7 @@ class DAXValidator:
             # Check for division operator (should use DIVIDE)
             if '/' in line_stripped and 'DIVIDE' not in line_upper and 'FORMAT' not in line_upper:
                 # Check if it's actually division, not part of a comment or date
-                if re.search(r'\]\s*/\s*[A-Za-z\[]', line_stripped):
+                if re.search(r'[\]\)0-9]\s*/\s*[A-Za-z\[\(0-9]', line_stripped):
                     self.warnings.append(f"{filepath}:{i} - Consider using DIVIDE() instead of / operator for safety")
             
             # Check for using VALUES() in CALCULATE (might want DISTINCT)
@@ -198,7 +203,7 @@ class DAXValidator:
         if not self.errors and not self.warnings:
             print("✅ All checks passed!")
     
-    def get_summary(self) -> Dict:
+    def get_summary(self) -> dict:
         """Get validation summary"""
         return {
             'errors': len(self.errors),
@@ -210,8 +215,6 @@ class DAXValidator:
 
 def main():
     """Main validation function"""
-    import argparse
-    
     parser = argparse.ArgumentParser(description='Validate DAX formula files')
     parser.add_argument('paths', nargs='+', help='Paths to DAX files or directories')
     parser.add_argument('-v', '--verbose', action='store_true', help='Verbose output')

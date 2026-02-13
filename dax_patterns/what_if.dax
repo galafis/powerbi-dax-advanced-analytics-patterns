@@ -49,15 +49,14 @@ RETURN
 // ------------------------------------------------
 
 // Revenue Sensitivity to Price
+// Measures how much revenue changes for a 1% price increase
 Revenue Sensitivity = 
 VAR BasePriceChange = 0.01  // 1% change
 VAR BaseRevenue = SUM('Sales'[Sales Amount])
 VAR RevenueAtPlus1 = BaseRevenue * (1 + BasePriceChange)
-VAR RevenueAtMinus1 = BaseRevenue * (1 - BasePriceChange)
-VAR AvgSensitivity = (RevenueAtPlus1 + RevenueAtMinus1) / 2
 RETURN
     DIVIDE(
-        AvgSensitivity - BaseRevenue,
+        RevenueAtPlus1 - BaseRevenue,
         BaseRevenue * BasePriceChange,
         0
     )

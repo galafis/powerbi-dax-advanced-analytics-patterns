@@ -97,20 +97,28 @@ RETURN
 // 3. EXPONENTIAL MOVING AVERAGES (EMA)
 // ------------------------------------------------
 
-// Exponential Moving Average (EMA)
+// Exponential Moving Average (EMA) approximation
+// NOTE: DAX does not support recursive measures.
+// This uses a weighted average over the last 12 periods as an approximation.
 Sales EMA = 
-VAR Alpha = 2 / (12 + 1)  // 12-period EMA
-VAR CurrentValue = [Total Sales]
-VAR PreviousEMA = 
-    CALCULATE(
-        [Sales EMA],
-        DATEADD('Calendar'[Date], -1, MONTH)
+VAR Alpha = 2 / (12 + 1)  // smoothing factor for 12-period EMA
+VAR Periods =
+    GENERATESERIES(0, 11, 1)
+VAR WeightedValues =
+    ADDCOLUMNS(
+        Periods,
+        "Weight", POWER(1 - Alpha, [Value]),
+        "PeriodSales",
+            CALCULATE(
+                [Total Sales],
+                DATEADD('Calendar'[Date], -[Value], MONTH)
+            )
     )
+VAR TotalWeight = SUMX(WeightedValues, [Weight])
 RETURN
-    IF(
-        ISBLANK(PreviousEMA),
-        CurrentValue,
-        (CurrentValue * Alpha) + (PreviousEMA * (1 - Alpha))
+    DIVIDE(
+        SUMX(WeightedValues, [Weight] * [PeriodSales]),
+        TotalWeight
     )
 
 // ------------------------------------------------
